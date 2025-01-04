@@ -1,0 +1,90 @@
+name: Build and Upload Marzban iplimit Dev
+
+on:
+  push:
+    paths-ignore:
+      - "*.md"
+      - "LICENSE"
+      - "marzban-iplimit.sh"
+      - "config.sample.json"
+      - "docs/**"
+      - ".github/**"
+
+jobs:
+  check-pylint:
+    runs-on: [self-hosted, linux, X64]
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint==3.3.3
+      - name: Analyzing the code with pylint
+        run: |
+          pylint $(git ls-files '*.py')
+
+  build:
+    needs: check-pylint
+    strategy:
+      matrix:
+        os: [ubuntu-22.04] 
+        arch: [x86_64] 
+        
+    runs-on: [self-hosted, linux, X64]
+
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            **/requirements*.txt
+
+      - name: Install your Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build Executable with Nuitka
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: main.py
+          mode: onefile
+          include-package: "websockets,logging"
+          include-module: "_bisect,_json"
+          python-flag: "-OO"
+          output-dir: .
+          output-file: marzban-iplimit_amd64.bin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: marzban-iplimit
+          path: |
+            ./marzban-iplimit_amd64.bin
+            ./marzban-iplimit.sh
+  
+      - uses: actions/download-artifact@v4
+        with:
+          name: marzban-iplimit
+          path: marzban-iplimit
+
+      - name: Upload files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SCP_HOST }}
+          username: ${{ secrets.SCP_USERNAME }}
+          password: ${{ secrets.SCP_PASSWORD }}
+          port: ${{ secrets.SCP_PORT }}
+          source: "marzban-iplimit/*"
+          target: /root/download_server/public/
