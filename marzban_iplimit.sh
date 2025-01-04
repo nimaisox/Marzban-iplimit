@@ -67,6 +67,23 @@ download_service() {
         echo "Failed to download the program. Please check your internet connection or the URL."
         return 1
     fi
+
+    local script_url="https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh"
+    local script_file="$WORKDIR/marzban_iplimit.sh"
+
+    echo "Downloading the script marzban_iplimit.sh..."
+    if [ -f "$script_file" ]; then
+        echo "Removing old version of $script_file..."
+        rm -f "$script_file"
+    fi
+
+    if curl -o "$script_file" "$script_url"; then
+        chmod +x "$script_file"
+        echo "The script $script_file has been successfully updated and is ready to use."
+    else
+        echo "Failed to download $script_file from $script_url."
+        return 1
+    fi
 }
 
 enable_service() {
@@ -156,15 +173,6 @@ install_service() {
             return 1
         fi
     fi
-
-    local script_url="https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh"
-    local script_file="marzban_iplimit.sh"
-    if ! curl -o "$WORKDIR/$script_file" "$script_url"; then
-        echo "Failed to download $script_file from $script_url."
-        return 1
-    fi
-
-    chmod +x "$WORKDIR/$script_file" || { echo "Failed to make $script_file executable"; return 1; }
 
     sudo ln -sf "$WORKDIR/marzban_iplimit.sh" "/usr/bin/$SERVICE_NAME"
     echo "Command '$SERVICE_NAME' is now available globally."
