@@ -654,18 +654,23 @@ main_menu() {
     case $choice in
         1)
             install_service
+            status_service
             ;;
         2)
             enable_service
+            status_service
             ;;
         3)
             disable_service
+            status_service
             ;;
         4)
             start_service
+            status_service
             ;;
         5)
             stop_service
+            status_service
             ;;
         6)
             if pgrep -f "$FILENAME" > /dev/null; then
@@ -690,9 +695,11 @@ main_menu() {
             fi
 
             download_service
+            status_service
             ;;
         9)
             uninstall_service
+            status_service
             ;;
         10)
             config_service
