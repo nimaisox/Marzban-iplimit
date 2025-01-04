@@ -1,18 +1,19 @@
 #!/bin/bash
-WORKDIR=/usr/local/bin/marzban-iplimit
-SERVICE_NAME="marzban-iplimit"
+WORKDIR=/usr/local/bin/marzban_iplimit
+SERVICE_NAME="marzban_iplimit"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 RED="\033[31m"
 GREEN="\033[32m"
 RESET="\033[0m"
- 
+FILENAME="marzban_iplimit.bin"
+
 ARCHITECTURE=$(uname -m)
 case "$ARCHITECTURE" in
     x86_64)
-        FILENAME="marzban-iplimit_amd64.bin"
+        ARCHITECTURE="amd64"
         ;;
     aarch64)
-        FILENAME="marzban-iplimit_arm64.bin"
+        ARCHITECTURE="arm64"
         ;;
     *)
         echo "Unsupported ARCHITECTURE: $ARCHITECTURE"
@@ -32,34 +33,41 @@ download_service() {
     local api_url="https://api.github.com/repos/$repo/releases/latest"
     local download_url
     local filename
+    local clean_filename
+
+    if [ -z "$ARCHITECTURE" ]; then
+        echo "Error: ARCHITECTURE is not defined. Please set it before running this script."
+        return 1
+    fi
+
+    if [ ! -d "$WORKDIR" ]; then
+        echo "Creating work directory: $WORKDIR"
+        mkdir -p "$WORKDIR"
+    fi
 
     echo "Fetching the latest release from GitHub..."
-
-    download_url=$(curl -s "$api_url" | grep "browser_download_url" | cut -d '"' -f 4)
+    download_url=$(curl -s "$api_url" | grep "browser_download_url" | grep "$ARCHITECTURE" | grep "linux.bin" | cut -d '"' -f 4)
     filename=$(basename "$download_url")
 
     if [ -z "$download_url" ]; then
-        echo "Failed to fetch the latest release URL. Please check the repository and internet connection."
-        echo "Press any key to exit..."
-        read -n 1 -s
+        echo "Failed to fetch the appropriate release URL for architecture: $ARCHITECTURE. Please check the repository and internet connection."
         return 1
     fi
 
     echo "Download URL: $download_url"
 
-    echo "Downloading the latest release..."
-    wget "$download_url" -O "$filename"
+    echo "Downloading the latest release to $WORKDIR..."
+    wget "$download_url" -O "$WORKDIR/$filename"
     if [ $? -eq 0 ]; then
-        chmod +x "$filename"
-        echo "The program has been successfully updated to the latest version and is ready to use."
+        clean_filename=$(echo "$filename" | sed -E "s/_(${ARCHITECTURE}|linux)//g" | sed 's/\.bin$/.bin/')
+        mv "$WORKDIR/$filename" "$WORKDIR/$clean_filename"
+        chmod +x "$WORKDIR/$clean_filename"
+        echo "The program has been successfully updated to the latest version and is ready to use as $WORKDIR/$clean_filename."
     else
         echo "Failed to download the program. Please check your internet connection or the URL."
-        echo "Press any key to exit..."
-        read -n 1 -s
         return 1
     fi
 }
-
 
 enable_service() {
     echo "Enable Service..."
@@ -81,8 +89,8 @@ StartLimitBurst=5
 [Service]
 Type=simple
 WorkingDirectory=/root/iplimit
-ExecStart=/bin/bash $WORKDIR/marzban-iplimit.sh start
-ExecStop=/bin/bash $WORKDIR/marzban-iplimit.sh stop
+ExecStart=/bin/bash $WORKDIR/marzban_iplimit.sh start
+ExecStop=/bin/bash $WORKDIR/marzban_iplimit.sh stop
 Restart=on-failure
 RestartSec=30
 TimeoutStopSec=120
@@ -100,7 +108,7 @@ EOF
     sudo systemctl enable "$SERVICE_NAME.service"
     echo "Service created and enabled to start at boot."
 
-    sudo ln -sf "$WORKDIR/marzban-iplimit.sh" "/usr/bin/$SERVICE_NAME"
+    sudo ln -sf "$WORKDIR/marzban_iplimit.sh" "/usr/bin/$SERVICE_NAME"
     echo "Command '$SERVICE_NAME' is now available globally."
 }
 
@@ -149,8 +157,8 @@ install_service() {
         fi
     fi
 
-    local script_url="https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban-iplimit.sh"
-    local script_file="marzban-iplimit.sh"
+    local script_url="https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh"
+    local script_file="marzban_iplimit.sh"
     if ! curl -o "$WORKDIR/$script_file" "$script_url"; then
         echo "Failed to download $script_file from $script_url."
         return 1
@@ -158,7 +166,7 @@ install_service() {
 
     chmod +x "$WORKDIR/$script_file" || { echo "Failed to make $script_file executable"; return 1; }
 
-    sudo ln -sf "$WORKDIR/marzban-iplimit.sh" "/usr/bin/$SERVICE_NAME"
+    sudo ln -sf "$WORKDIR/marzban_iplimit.sh" "/usr/bin/$SERVICE_NAME"
     echo "Command '$SERVICE_NAME' is now available globally."
 
     echo "Service installed successfully in $WORKDIR."

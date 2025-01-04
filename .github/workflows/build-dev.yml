@@ -5,7 +5,7 @@ on:
     paths-ignore:
       - "*.md"
       - "LICENSE"
-      - "marzban-iplimit.sh"
+      - "marzban_iplimit.sh"
       - "config.sample.json"
       - "docs/**"
       - ".github/**"
@@ -65,16 +65,15 @@ jobs:
           include-module: "_bisect,_json"
           python-flag: "-OO"
           output-dir: .
-          output-file: marzban-iplimit_amd64.bin
+          output-file: marzban_iplimit_amd64.bin
 
       - uses: actions/upload-artifact@v4
         with:
-          name: marzban-iplimit
+          name: marzban_iplimit
           path: |
-            ./marzban-iplimit_amd64.bin
-            ./marzban-iplimit.sh
+            ./marzban_iplimit_amd64.bin
   
       - uses: actions/download-artifact@v4
         with:
-          name: marzban-iplimit
-          path: marzban-iplimit
+          name: marzban_iplimit
+          path: marzban_iplimit
