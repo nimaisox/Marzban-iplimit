@@ -35,9 +35,6 @@ jobs:
           - os: ubuntu-latest
             os_name: linux
             arch: arm64
-          - os: windows-latest
-            os_name: windows
-            arch: x86_64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -66,13 +63,13 @@ jobs:
           include-module: "_bisect,_json"
           python-flag: "-OO"
           output-dir: .
-          output-file: marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}${{ matrix.os_name == 'windows' && '.exe' || '' }}
+          output-file: marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch }}
+          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
           path: |
-            ./marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}${{ matrix.os_name == 'windows' && '.exe' || '' }}
+            ./marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
 
   release:
     needs: build
