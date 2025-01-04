@@ -580,7 +580,20 @@ if [[ -n "$ACTION" ]]; then
                 read -n 1 -s
                 return 1
             fi
+            if pgrep -f "$FILENAME" > /dev/null; then
+                echo "Stopping $FILENAME process..."
+                pkill -f "$FILENAME"
+                sleep 1
 
+                if pgrep -f "$FILENAME" > /dev/null; then
+                    echo "Failed to stop marzban iplimit service. Please try manually."
+                    exit 1
+                else
+                    echo ",arzban iplimit service stopped successfully."
+                fi
+            else
+                echo "No running $FILENAME process found."
+            fi
             download_service
             exit 0
             ;;
