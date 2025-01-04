@@ -78,13 +78,3 @@ jobs:
         with:
           name: marzban-iplimit
           path: marzban-iplimit
-
-      - name: Upload files via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SCP_HOST }}
-          username: ${{ secrets.SCP_USERNAME }}
-          password: ${{ secrets.SCP_PASSWORD }}
-          port: ${{ secrets.SCP_PORT }}
-          source: "marzban-iplimit/*"
-          target: /root/download_server/public/
