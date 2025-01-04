@@ -43,11 +43,24 @@ async def check_ip_used() -> dict:
     ]
     logger.info("Number of all active ips: %s", str(total_ips))
     messages.append(f"---------\nCount Of All Active IPs: <b>{total_ips}</b>")
-    shorter_messages = [
-        "\n".join(messages[i : i + 100]) for i in range(0, len(messages), 100)
-    ]
+
+    MAX_MESSAGE_LENGTH = 4096
+    shorter_messages = []
+    current_chunk = ""
+
+    for message in messages:
+        if len(current_chunk) + len(message) + 1 > MAX_MESSAGE_LENGTH:
+            shorter_messages.append(current_chunk)
+            current_chunk = message
+        else:
+            current_chunk += "\n" + message
+
+    if current_chunk:
+        shorter_messages.append(current_chunk)
+
     for message in shorter_messages:
         await send_logs(message)
+    
     return all_users_log
 
 

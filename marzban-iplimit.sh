@@ -602,6 +602,9 @@ main_menu() {
     echo "║ 8) Update                                      ║"
     echo "║ 9) Uninstall                                   ║"
     echo "║ 10) Configuration                              ║"
+    echo "╠════════════════════════════════════════════════╣"
+    echo "║ GitHub Repository:                             ║"
+    echo "║ https://github.com/nimaisox/Marzban-iplimit    ║"
     echo "╚════════════════════════════════════════════════╝"
     echo ""
     status_service
