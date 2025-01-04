@@ -123,6 +123,15 @@ async def check_ip(ip_address: str) -> None | str:
         resp.raise_for_status()
         info = resp.json()
         country = info.get(key) if key else resp.text
+
+        if "ipapi.co" in endpoint:
+            # پاسخ به صورت متن ساده
+            country = resp.text.strip()
+        else:
+            # تلاش برای پردازش به عنوان JSON
+            info = resp.json()
+            country = info.get(key) if key else resp.text.strip()
+
         if country:
             CACHE[ip_address] = country
         return country
