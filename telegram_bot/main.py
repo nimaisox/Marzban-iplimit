@@ -20,7 +20,7 @@ try:
         MessageHandler,
         filters,
     )
-    from telegram.error import InvalidToken # pylint: disable=unused-import
+    from telegram.error import InvalidToken, BadRequest # pylint: disable=unused-import
 except ImportError:
     logger.warning(
         "Module 'python-telegram-bot' is not installed use:"
@@ -92,19 +92,6 @@ are counted (to increase accuracy)</code>
 <b>/set_check_interval</b>\n<code>Set the check interval time </code>
 <b>/set_time_to_active_users</b>\n<code>Set the time to active users</code>
 <b>/backup</b> \n<code>Sends 'config.json' file</code>"""
-
-async def send_logs(msg):
-    """Send logs to all admins."""
-    admins = await check_admin()
-    for admin in admins:
-        try:
-            await application.bot.sendMessage(
-                chat_id=admin, text=msg, parse_mode="HTML"
-            )
-        except Exception as error:  # pylint: disable=broad-except
-            logger.error("Failed to send message to admin %s: %s", admin, error)
-
-
 
 async def add_admin(update: Update, _context: ContextTypes.DEFAULT_TYPE):
     """
