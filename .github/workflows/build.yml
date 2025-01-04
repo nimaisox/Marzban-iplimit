@@ -63,32 +63,45 @@ jobs:
           include-module: "_bisect,_json"
           python-flag: "-OO"
           output-dir: .
-          output-file: marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          output-file: marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
 
       - uses: actions/upload-artifact@v4
         with:
           name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
           path: |
-            ./marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+            ./marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
 
   release:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Download artifacts
+
+      - name: Download artifacts (x86_64)
         uses: actions/download-artifact@v4
         with:
-          path: ./artifacts
+          name: marzban_iplimit_x86_64_linux
+          path: ./artifacts/x86_64_linux
+
+      - name: Download artifacts (ARM64)
+        uses: actions/download-artifact@v4
+        with:
+          name: marzban_iplimit_arm64_linux
+          path: ./artifacts/arm64_linux
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./artifacts/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Uploading x86_64 files..."
+          ls -al ./artifacts/x86_64_linux
+          gh release upload ${{ github.ref_name }} ./artifacts/x86_64_linux/marzban-iplimit_x86_64_linux.bin
+          
+          echo "Uploading ARM64 files..."
+          ls -al ./artifacts/arm64_linux
+          gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban-iplimit_arm64_linux.bin
