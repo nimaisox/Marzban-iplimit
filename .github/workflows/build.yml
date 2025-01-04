@@ -102,8 +102,8 @@ jobs:
         run: |
           echo "Uploading amd64 files..."
           ls -al ./artifacts/amd64_linux
-          gh release upload ${{ github.ref_name }} ./artifacts/amd64_linux/marzban-iplimit_amd64_linux.bin
+          gh release upload ${{ github.ref_name }} ./artifacts/amd64_linux/marzban_iplimit_amd64_linux.bin
           
           echo "Uploading ARM64 files..."
           ls -al ./artifacts/arm64_linux
-          gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban-iplimit_arm64_linux.bin
+          gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban_iplimit_arm64_linux.bin
