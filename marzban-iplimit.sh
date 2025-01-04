@@ -28,14 +28,13 @@ if [ ! -x "$0" ]; then
 fi
 
 download_service() {
-    local repo="nimaisox/Marzban-iplimit" # نام کاربری و نام مخزن گیت‌هاب
+    local repo="nimaisox/Marzban-iplimit"
     local api_url="https://api.github.com/repos/$repo/releases/latest"
     local download_url
     local filename
 
     echo "Fetching the latest release from GitHub..."
 
-    # دریافت URL دانلود آخرین نسخه
     download_url=$(curl -s "$api_url" | grep "browser_download_url" | cut -d '"' -f 4)
     filename=$(basename "$download_url")
 
