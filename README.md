@@ -22,23 +22,6 @@ You can install Marzban-iplimit by running the following command in your termina
 bash <(curl -sSL https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh)
 ```
 
-After running the command, you will see a menu with the following options:
-
-```
------------------------------
-1. Start the script
-2. Stop the script
-3. Attach to the script
-4. Update the script
-5. Create or Update telegram BOT_TOKEN
-6. Create or Update ADMINS
-7. Exit
------------------------------
-Enter your choice:
-```
-
-![Loading Gif](docs/1.gif)
-
 And after that you need input your panel information and other settings:
 
 ![Loading Gif](docs/1.png)
