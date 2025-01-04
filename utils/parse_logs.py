@@ -125,7 +125,7 @@ async def check_ip(ip_address: str) -> None | str:
 
         if "ipapi.co" in endpoint:
             country = resp.text.strip()
-            if not country or len(country) != 2: 
+            if not country or len(country) != 2:
                 logger.error("Invalid response from ipapi.co: %s", resp.text)
                 return None
         else:
