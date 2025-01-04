@@ -120,12 +120,14 @@ async def check_ip(ip_address: str) -> None | str:
             logger.info("No proxy used")
             async with httpx.AsyncClient(http2=True, timeout=timeout, verify=False) as client:
                 resp = await client.get(url, timeout=2)
+
         resp.raise_for_status()
-        info = resp.json()
-        country = info.get(key) if key else resp.text
 
         if "ipapi.co" in endpoint:
             country = resp.text.strip()
+            if not country or len(country) != 2: 
+                logger.error("Invalid response from ipapi.co: %s", resp.text)
+                return None
         else:
             info = resp.json()
             country = info.get(key) if key else resp.text.strip()
