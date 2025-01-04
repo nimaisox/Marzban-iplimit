@@ -191,12 +191,18 @@ uninstall_service() {
 
     echo "Uninstalling the service..."
     if pgrep -f "$WORKDIR/$FILENAME" > /dev/null; then
-        echo "Stopping $FILENAME process..."
-        pkill -f "$FILENAME"
-        if systemctl is-active --quiet "$SERVICE_NAME.service"; then
-            echo "Stopping the systemd service..."
-            sudo systemctl stop "$SERVICE_NAME.service"
+        echo "Stopping all processes related to $FILENAME..."
+        pkill -f "$WORKDIR/$FILENAME"
+        sleep 2
+        if pgrep -f "$WORKDIR/$FILENAME" > /dev/null; then
+            echo "Forcibly killing remaining processes..."
+            pkill -9 -f "$WORKDIR/$FILENAME"
         fi
+    fi
+
+    if systemctl is-active --quiet "$SERVICE_NAME.service"; then
+        echo "Stopping the systemd service..."
+        sudo systemctl stop "$SERVICE_NAME.service"
     fi
 
     if systemctl is-enabled --quiet "$SERVICE_NAME.service"; then
@@ -216,7 +222,8 @@ uninstall_service() {
         echo "Removing the systemd service file..."
         sudo rm -f "/etc/systemd/system/$SERVICE_NAME.service"
         sudo systemctl daemon-reload
-        echo "Service file removed."
+        sudo systemctl reset-failed
+        echo "Service file removed and systemd cache cleared."
     else
         echo "Service file not found: /etc/systemd/system/$SERVICE_NAME.service"
     fi
@@ -229,8 +236,19 @@ uninstall_service() {
         echo "Executable not found: /usr/bin/$SERVICE_NAME"
     fi
 
-    echo "Service and related files have been successfully uninstalled."
+    if [ -d "/var/log/$SERVICE_NAME" ]; then
+        echo "Removing logs..."
+        sudo rm -rf "/var/log/$SERVICE_NAME"
+        echo "Logs removed."
+    fi
+
+    if ! pgrep -f "$WORKDIR/$FILENAME" > /dev/null; then
+        echo "Service has been successfully stopped and uninstalled."
+    else
+        echo "Warning: Some processes might still be running."
+    fi
 }
+
 
 start_service() {
     echo "Starting service..."
