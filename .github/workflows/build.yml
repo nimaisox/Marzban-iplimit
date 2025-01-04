@@ -63,7 +63,7 @@ jobs:
           include-module: "_bisect,_json"
           python-flag: "-OO"
           output-dir: .
-          output-file: marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
 
       - uses: actions/upload-artifact@v4
         with:
