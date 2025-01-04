@@ -34,10 +34,22 @@ jobs:
     needs: check-pylint
     strategy:
       matrix:
-        os: [ubuntu-latest] 
+        os: [ubuntu-latest, windows-latest]
         arch: [x86_64, arm64]
-        
-    runs-on: [ubuntu-latest]
+        include:
+          - os: ubuntu-latest
+            os_name: ubuntu
+            arch: x86_64
+          - os: ubuntu-latest
+            os_name: ubuntu
+            arch: arm64
+          - os: windows-latest
+            os_name: windows
+            arch: x86_64
+          - os: windows-latest
+            os_name: windows
+            arch: arm64   
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check-out repository
@@ -65,15 +77,32 @@ jobs:
           include-module: "_bisect,_json"
           python-flag: "-OO"
           output-dir: .
-          output-file: marzban-iplimit_${{ matrix.arch }}.bin
+          output-file: marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}${{ matrix.os_name == 'windows' && '.exe' || '' }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: marzban_iplimit_${{ matrix.arch }}
           path: |
-            ./marzban_iplimit_${{ matrix.arch }}.bin
-  
-      - uses: actions/download-artifact@v4
+            ./marzban-iplimit_${{ matrix.arch }}_${{ matrix.os_name }}${{ matrix.os_name == 'windows' && '.exe' || '' }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch }}
-          path: marzban_iplimit
+          path: ./artifacts
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
