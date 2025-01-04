@@ -1,6 +1,6 @@
 #!/bin/bash
 WORKDIR=/usr/local/bin/marzban_iplimit
-SERVICE_NAME="marzban_iplimit"
+SERVICE_NAME="marzban-iplimit"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 RED="\033[31m"
 GREEN="\033[32m"
