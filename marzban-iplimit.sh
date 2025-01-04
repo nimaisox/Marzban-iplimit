@@ -150,7 +150,7 @@ install_service() {
         fi
     fi
 
-    local script_url="https://raw.githubusercontent.com/nimaiso/Marzban-iplimit/master/marzban-iplimit.sh"
+    local script_url="https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban-iplimit.sh"
     local script_file="marzban-iplimit.sh"
     if ! curl -o "$WORKDIR/$script_file" "$script_url"; then
         echo "Failed to download $script_file from $script_url."
