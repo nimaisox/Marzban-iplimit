@@ -284,7 +284,6 @@ start_service() {
 
     echo "Starting service '$FILENAME'..."
     nohup "./$FILENAME" >"$WORKDIR/service.log" 2>&1 &
-
     sleep 2
 
     if pgrep -f "$FILENAME" > /dev/null; then
@@ -574,13 +573,17 @@ if [[ -n "$ACTION" ]]; then
             ;;
         update)
             echo "Updating the configuration for the marzban iplimit service..."
+
             if [ ! -f "$WORKDIR/$FILENAME" ]; then
                 echo "Please install the service first."
                 echo "Press any key to exit..."
                 read -n 1 -s
                 return 1
             fi
+
+            WAS_RUNNING=false
             if pgrep -f "$FILENAME" > /dev/null; then
+                WAS_RUNNING=true
                 echo "Stopping $FILENAME process..."
                 pkill -f "$FILENAME"
                 sleep 1
@@ -589,12 +592,31 @@ if [[ -n "$ACTION" ]]; then
                     echo "Failed to stop marzban iplimit service. Please try manually."
                     exit 1
                 else
-                    echo ",arzban iplimit service stopped successfully."
+                    echo "marzban iplimit service stopped successfully."
                 fi
             else
                 echo "No running $FILENAME process found."
             fi
+
             download_service
+
+            if [ "$WAS_RUNNING" = true ]; then
+                echo "Starting service '$FILENAME'..."
+                nohup "./$FILENAME" >"$WORKDIR/service.log" 2>&1 &
+                sleep 2
+
+                if pgrep -f "$FILENAME" > /dev/null; then
+                    echo "Service '$FILENAME' started successfully."
+                else
+                    echo "Failed to start service '$FILENAME'. Please check the logs or troubleshoot manually."
+                    echo "Press any key to exit..."
+                    read -n 1 -s
+                    return 1
+                fi
+            else
+                echo "Service was not running before update. No need to restart."
+            fi
+
             exit 0
             ;;
         *)
@@ -700,6 +722,8 @@ main_menu() {
             logs_service
             ;;
         8)
+            echo "Updating the configuration for the marzban iplimit service..."
+
             if [ ! -f "$WORKDIR/$FILENAME" ]; then
                 echo "Please install the service first."
                 echo "Press any key to exit..."
@@ -707,7 +731,42 @@ main_menu() {
                 return 1
             fi
 
+            WAS_RUNNING=false
+            if pgrep -f "$FILENAME" > /dev/null; then
+                WAS_RUNNING=true
+                echo "Stopping $FILENAME process..."
+                pkill -f "$FILENAME"
+                sleep 1
+
+                if pgrep -f "$FILENAME" > /dev/null; then
+                    echo "Failed to stop marzban iplimit service. Please try manually."
+                    exit 1
+                else
+                    echo "marzban iplimit service stopped successfully."
+                fi
+            else
+                echo "No running $FILENAME process found."
+            fi
+
             download_service
+
+            if [ "$WAS_RUNNING" = true ]; then
+                echo "Starting service '$FILENAME'..."
+                nohup "./$FILENAME" >"$WORKDIR/service.log" 2>&1 &
+                sleep 2
+
+                if pgrep -f "$FILENAME" > /dev/null; then
+                    echo "Service '$FILENAME' started successfully."
+                else
+                    echo "Failed to start service '$FILENAME'. Please check the logs or troubleshoot manually."
+                    echo "Press any key to exit..."
+                    read -n 1 -s
+                    return 1
+                fi
+            else
+                echo "Service was not running before update. No need to restart."
+            fi
+
             status_service
             ;;
         9)
