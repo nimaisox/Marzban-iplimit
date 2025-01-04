@@ -32,10 +32,10 @@ jobs:
         arch: [x86_64, arm64]
         include:
           - os: ubuntu-latest
-            os_name: ubuntu
+            os_name: linux
             arch: x86_64
           - os: ubuntu-latest
-            os_name: ubuntu
+            os_name: linux
             arch: arm64
           - os: windows-latest
             os_name: windows
