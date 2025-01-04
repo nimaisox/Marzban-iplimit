@@ -2,14 +2,8 @@ name: Build and Upload Marzban iplimit
 
 on:
   push:
-    paths-ignore:
-      - "*.md"
-      - "LICENSE"
-      - "marzban_iplimit.sh"
-      - "config.sample.json"
-      - "docs/**"
-      - ".github/**"
-
+    tags:
+        - '*'
 jobs:
   check-pylint:
     runs-on: [ubuntu-latest]
@@ -46,9 +40,6 @@ jobs:
           - os: windows-latest
             os_name: windows
             arch: x86_64
-          - os: windows-latest
-            os_name: windows
-            arch: arm64   
     runs-on: ${{ matrix.os }}
 
     steps:
