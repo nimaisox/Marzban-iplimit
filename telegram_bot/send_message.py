@@ -1,7 +1,6 @@
 """
 Send logs to telegram bot.
 """
-import html
 import re
 from telegram_bot.main import application, BadRequest,asyncio
 from telegram_bot.utils import check_admin
