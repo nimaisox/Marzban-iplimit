@@ -7,6 +7,7 @@ listing admins, setting special limits, and creating a config and more...
 import asyncio
 import os
 import sys
+import zipfile
 from utils.logs import logger
 from utils.read_config import read_config
 
@@ -409,13 +410,24 @@ async def write_country_code(update: Update, _context: ContextTypes.DEFAULT_TYPE
 
 
 async def send_backup(update: Update, _context: ContextTypes.DEFAULT_TYPE):
-    """Send the backup file to the user."""
+    """Create or update a zip file and send it to the user."""
     check = await check_admin_privilege(update)
     if check:
         return check
+
+    files_to_zip = ["config.json", ".disable_users.json"]
+    zip_filename = "backup.zip"
+
+    with zipfile.ZipFile(zip_filename, "w") as zipf:
+        for file in files_to_zip:
+            if os.path.exists(file):
+                zipf.write(file)
+            else:
+                await update.message.reply_text(f"Warning: File '{file}' not found!")
+
     await update.message.reply_document(
-        document=open("config.json", "r", encoding="utf8"),  # pylint: disable=consider-using-with
-        caption="Here is the backup file!",
+        document=open(zip_filename, "rb"),
+        caption="Here is the updated backup file containing both files!",
     )
 
 
