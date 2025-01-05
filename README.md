@@ -46,7 +46,7 @@ Marzban-iplimit can be controlled via a Telegram bot. Here are the available com
 - `/set_general_limit_number`: Set the general limit number. If a user is not in the special limit list, this is their limit number.
 - `/set_check_interval`: Set the check interval time.
 - `/set_time_to_active_users`: Set the time to active users.
-- `/backup`: Send the 'config.json' file.
+- `/backup`: Sends a zip file containing 'config.json' & '.disable_users.json'.
 
 ## Common Issues and Solutions
 
