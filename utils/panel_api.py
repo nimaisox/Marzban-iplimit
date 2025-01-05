@@ -108,7 +108,7 @@ async def all_user(panel_data: PanelType) -> list[UserType] | ValueError:
         for scheme in schemes:
             url = f"{scheme}://{panel_data.panel_domain}/api/users"
             try:
-                async with httpx.AsyncClient(http2=True, verify=False) as client:
+                async with httpx.AsyncClient(http2=True) as client:
                     response = await client.get(url, headers=headers, timeout=10)
                     response.raise_for_status()
 
@@ -183,7 +183,7 @@ async def enable_all_user(panel_data: PanelType) -> None | ValueError:
             url = f"{scheme}://{panel_data.panel_domain}/api/user/{username.name}"
             status = {"status": "active"}
             try:
-                async with httpx.AsyncClient(http2=True, verify=False) as client:
+                async with httpx.AsyncClient(http2=True) as client:
                     response = await client.put(
                         url, json=status, headers=headers, timeout=5
                     )
@@ -233,7 +233,7 @@ async def enable_selected_users(
         and HTTPS endpoints.
     """
     async def enable_user_request(url: str, headers: dict, status: dict) -> None:
-        async with httpx.AsyncClient(http2=True, verify=False) as client:
+        async with httpx.AsyncClient(http2=True) as client:
             response = await client.put(url, json=status, headers=headers, timeout=5)
             response.raise_for_status()
 
@@ -329,7 +329,7 @@ async def disable_user(panel_data: PanelType, username: UserType) -> None | Valu
         """
         Helper function to send a disable request.
         """
-        async with httpx.AsyncClient(http2=True, verify=False) as client:
+        async with httpx.AsyncClient(http2=True) as client:
             response = await client.put(url, json=status, headers=headers, timeout=5)
             response.raise_for_status()
 
@@ -441,7 +441,7 @@ async def get_nodes(panel_data: PanelType) -> list[NodeType] | ValueError:
         for scheme in schemes:
             url = f"{scheme}://{panel_data.panel_domain}/api/nodes"
             try:
-                async with httpx.AsyncClient(http2=True, verify=False) as client:
+                async with httpx.AsyncClient(http2=True) as client:
                     response = await client.get(url, headers=headers, timeout=10)
                     response.raise_for_status()
 

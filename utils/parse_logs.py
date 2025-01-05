@@ -114,11 +114,11 @@ async def check_ip(ip_address: str) -> None | str:
         if proxy_url:
             logger.info("Using proxy: %s", proxy_url)
             async with httpx.AsyncClient(http2=True,
-                                          proxy=proxy_url, timeout=timeout, verify=False) as client:
+                                          proxy=proxy_url, timeout=timeout) as client:
                 resp = await client.get(url, timeout=2)
         else:
             logger.info("No proxy used")
-            async with httpx.AsyncClient(http2=True, timeout=timeout, verify=False) as client:
+            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                 resp = await client.get(url, timeout=2)
 
         resp.raise_for_status()
