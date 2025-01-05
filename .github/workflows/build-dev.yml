@@ -68,3 +68,26 @@ jobs:
           name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
           path: |
             ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+
+  download-and-use:
+    needs: [build]
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: x86_64
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: arm64
+    steps:
+      - name: Download Built Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          path: ./downloaded
+
+      - name: Check File
+        run: |
+          ls -l ./downloaded
