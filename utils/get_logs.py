@@ -5,6 +5,7 @@ import asyncio
 import random
 import ssl
 import sys
+import traceback
 
 from asyncio import Task
 
@@ -12,10 +13,12 @@ from utils.parse_logs import INVALID_IPS, parse_logs
 from utils.panel_api import get_nodes, get_token
 from utils.types import NodeType, PanelType
 from utils.logs import logger
+from utils.read_config import ConfigManager
 
 try:
     import websockets.client
     import websockets.exceptions
+    from websockets.exceptions import ConnectionClosedError
 except ImportError:
     logger.warning(
         "Module 'websockets' is not installed use: 'pip install websockets' to install it"
@@ -56,7 +59,7 @@ async def retrieve_token(panel_data: PanelType) -> str:
 
 async def get_panel_logs(panel_data: PanelType) -> None:
     """
-    This function establishes a websocket connection to the main server and retrieves logs.
+    Establishes a websocket connection to retrieve logs from a panel server.
     """
     interval = random.choice(("0.9", "1.3", "1.5", "1.7"))
     try:
@@ -77,28 +80,35 @@ async def get_panel_logs(panel_data: PanelType) -> None:
         logger.error(message)
         raise ValueError(message)
 
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+    ssl_ctx.check_hostname = True
+    ssl_ctx.verify_mode = ssl.CERT_REQUIRED
+
     for scheme in schemes:
         url = (
             f"{scheme}://{panel_domain}/api/core/logs"
             f"?interval={interval}&token={token}"
         )
-        ssl_ctx = ssl_context if scheme == "wss" else None
+        current_ssl_ctx = ssl_ctx if scheme == "wss" else None
 
         while True:
             try:
-                async with websockets.connect(url, ssl=ssl_ctx) as ws:
+                async with websockets.connect(url, ssl=current_ssl_ctx) as ws:
                     log_message = f"Connected to panel logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
 
+                    config_manager = ConfigManager(config_file="config.json")
+
                     while True:
                         new_log = await ws.recv()
-                        await parse_logs(str(new_log))
-            except websockets.exceptions.ConnectionClosedError as error:
+                        await parse_logs(str(new_log), config_manager)
+            except ConnectionClosedError as error:
                 logger.error("Connection closed unexpectedly for %s: %s", scheme, error)
                 break
             except Exception as error:  # pylint: disable=broad-except
-                logger.error("Unexpected error with %s: %s", scheme, error)
+                logger.error("Unexpected error with %s: %s\n%s", scheme, error,
+                              traceback.format_exc())
                 break
 
 
@@ -125,12 +135,16 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
         logger.error(message)
         raise ValueError(message)
 
+    secure_ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+    secure_ssl_context.check_hostname = True
+    secure_ssl_context.verify_mode = ssl.CERT_REQUIRED
+
     for scheme in schemes:
         url = (
             f"{scheme}://{panel_domain}/api/node/{node.node_id}/logs"
             f"?interval={interval}&token={token}"
         )
-        ssl_ctx = ssl_context if scheme == "wss" else None
+        ssl_ctx = secure_ssl_context if scheme == "wss" else None
 
         while True:
             try:
@@ -139,12 +153,23 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                     await send_logs(log_message)
                     logger.info(log_message)
 
+                    config_manager = ConfigManager(config_file="config.json")
+
                     while True:
                         new_log = await ws.recv()
-                        await parse_logs(str(new_log))
-            except websockets.exceptions.ConnectionClosedError as error:
+                        await parse_logs(str(new_log), config_manager)
+            except ConnectionClosedError as error:
                 logger.error(
                     "Connection closed for node [ID: %s, Name: %s] using %s: %s",
+                    node.node_id,
+                    node.node_name,
+                    scheme,
+                    error,
+                )
+                break
+            except ssl.SSLError as error:
+                logger.error(
+                    "SSL error for node [ID: %s, Name: %s] using %s: %s",
                     node.node_id,
                     node.node_name,
                     scheme,
