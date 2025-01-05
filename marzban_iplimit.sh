@@ -316,7 +316,7 @@ stop_service() {
             echo "Failed to stop marzban iplimit service. Please try manually."
             exit 1
         else
-            echo ",arzban iplimit service stopped successfully."
+            echo "marzban iplimit service stopped successfully."
         fi
     else
         echo "No running $FILENAME process found."
