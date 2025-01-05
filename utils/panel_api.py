@@ -45,7 +45,7 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
         try:
             timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
             async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                response = await client.post(url, data=payload, timeout=5)
+                response = await client.post(url, data=payload)
                 response.raise_for_status()
             json_obj = response.json()
             panel_data.panel_token = json_obj["access_token"]
@@ -167,7 +167,7 @@ async def enable_all_user(panel_data: PanelType) -> None | ValueError:
             timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
             async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                 response = await client.put(
-                    url, json=status, headers=headers, timeout=5
+                    url, json=status, headers=headers
                 )
                 response.raise_for_status()
 
@@ -225,7 +225,7 @@ async def enable_selected_users(
                 timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
                 async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                     response = await client.put(
-                        url, json=status, headers=headers, timeout=5
+                        url, json=status, headers=headers
                     )
                     response.raise_for_status()
 
@@ -295,7 +295,7 @@ async def disable_user(panel_data: PanelType, username: UserType) -> None | Valu
         try:
             timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
             async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                response = await client.put(url, json=status, headers=headers, timeout=5)
+                response = await client.put(url, json=status, headers=headers)
                 response.raise_for_status()
 
             message = f"Disabled user: {username.name}"
@@ -377,7 +377,7 @@ async def get_nodes(panel_data: PanelType) -> list[NodeType] | ValueError:
         try:
             timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
             async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                response = await client.get(url, headers=headers, timeout=10)
+                response = await client.get(url, headers=headers)
                 response.raise_for_status()
 
             nodes = parse_nodes(response.json())
