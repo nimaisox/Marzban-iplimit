@@ -5,6 +5,7 @@ This module contains functions to interact with the panel API.
 import asyncio
 import random
 import sys
+import traceback
 
 from telegram_bot.send_message import send_logs
 
@@ -54,7 +55,7 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
             await send_logs(message)
             logger.error(message)
         except Exception as error:  # pylint: disable=broad-except
-            message = f"Unexpected error during token request: {error}"
+            message = f"Unexpected error during token request: {error}\n{traceback.format_exc()}"
             await send_logs(message)
             logger.error(message)
         await asyncio.sleep(random.randint(2, 5) * (attempt + 1))
