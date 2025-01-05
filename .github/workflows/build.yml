@@ -6,7 +6,7 @@ on:
         - '*'
 jobs:
   check-pylint:
-    runs-on: [ubuntu-24.04]
+    runs-on: [ubuntu-22.04]
     strategy:
       matrix: 
         python-version: ["3.11", "3.12"]
@@ -29,10 +29,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-24.04
+          - os: ubuntu-22.04
             os_name: linux
             arch: x86_64
-          - os: ubuntu-24.04
+          - os: ubuntu-22.04
             os_name: linux
             arch: arm64
     runs-on: ${{ matrix.os }}
@@ -73,7 +73,7 @@ jobs:
 
   release:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
