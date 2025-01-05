@@ -426,7 +426,7 @@ async def send_backup(update: Update, _context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(f"Warning: File '{file}' not found!")
 
     await update.message.reply_document(
-        document=open(zip_filename, "rb"),
+        document=open(zip_filename, "rb"), # pylint: disable=consider-using-with
         caption="Here is the updated backup file containing both files!",
     )
 
