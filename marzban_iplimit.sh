@@ -30,7 +30,7 @@ fi
 
 download_service() {
     local repo="nimaisox/Marzban-iplimit"
-    local api_url="https://api.github.com/repos/$repo/releases/latest"
+    local api_url="https://api.github.com/repos/$repo/releases"
     local download_url
     local filename
     local clean_filename
@@ -45,18 +45,20 @@ download_service() {
         mkdir -p "$WORKDIR"
     fi
 
-    echo "Fetching the latest release from GitHub..."
-    download_url=$(curl -s "$api_url" | grep "browser_download_url" | grep "$ARCHITECTURE" | grep "linux.bin" | cut -d '"' -f 4)
-    filename=$(basename "$download_url")
+    echo "Fetching stable releases from GitHub..."
+    # Fetch all releases and filter only stable ones
+    download_url=$(curl -s "$api_url" | \
+        jq -r '.[] | select(.prerelease == false) | .assets[] | select(.name | contains("'"$ARCHITECTURE"'") and contains("linux.bin")) | .browser_download_url' | head -n 1)
 
     if [ -z "$download_url" ]; then
         echo "Failed to fetch the appropriate release URL for architecture: $ARCHITECTURE. Please check the repository and internet connection."
         return 1
     fi
 
+    filename=$(basename "$download_url")
     echo "Download URL: $download_url"
 
-    echo "Downloading the latest release to $WORKDIR..."
+    echo "Downloading the stable release to $WORKDIR..."
     wget "$download_url" -O "$WORKDIR/$filename"
     if [ $? -eq 0 ]; then
         clean_filename=$(echo "$filename" | sed -E "s/_(${ARCHITECTURE}|linux)//g" | sed 's/\.bin$/.bin/')
