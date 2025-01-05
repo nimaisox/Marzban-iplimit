@@ -29,7 +29,8 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
     for scheme in ["https", "http"]:
         url = f"{scheme}://{panel_data.panel_domain}/api/admin/token"
         try:
-            async with httpx.AsyncClient(http2=True) as client:
+            timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                 response = await client.post(url, data=payload, timeout=5)
                 response.raise_for_status()
             json_obj = response.json()

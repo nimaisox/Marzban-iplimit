@@ -45,7 +45,8 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
         for scheme in schemes:
             url = f"{scheme}://{panel_data.panel_domain}/api/admin/token"
             try:
-                async with httpx.AsyncClient(http2=True, verify=True) as client:
+                timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+                async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                     response = await client.post(url, data=payload, timeout=5)
                     response.raise_for_status()
                 json_obj = response.json()
@@ -108,7 +109,8 @@ async def all_user(panel_data: PanelType) -> list[UserType] | ValueError:
         for scheme in schemes:
             url = f"{scheme}://{panel_data.panel_domain}/api/users"
             try:
-                async with httpx.AsyncClient(http2=True) as client:
+                timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+                async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                     response = await client.get(url, headers=headers, timeout=10)
                     response.raise_for_status()
 
@@ -183,7 +185,8 @@ async def enable_all_user(panel_data: PanelType) -> None | ValueError:
             url = f"{scheme}://{panel_data.panel_domain}/api/user/{username.name}"
             status = {"status": "active"}
             try:
-                async with httpx.AsyncClient(http2=True) as client:
+                timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+                async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                     response = await client.put(
                         url, json=status, headers=headers, timeout=5
                     )
@@ -233,7 +236,8 @@ async def enable_selected_users(
         and HTTPS endpoints.
     """
     async def enable_user_request(url: str, headers: dict, status: dict) -> None:
-        async with httpx.AsyncClient(http2=True) as client:
+        timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+        async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
             response = await client.put(url, json=status, headers=headers, timeout=5)
             response.raise_for_status()
 
@@ -329,7 +333,8 @@ async def disable_user(panel_data: PanelType, username: UserType) -> None | Valu
         """
         Helper function to send a disable request.
         """
-        async with httpx.AsyncClient(http2=True) as client:
+        timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+        async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
             response = await client.put(url, json=status, headers=headers, timeout=5)
             response.raise_for_status()
 
@@ -441,7 +446,8 @@ async def get_nodes(panel_data: PanelType) -> list[NodeType] | ValueError:
         for scheme in schemes:
             url = f"{scheme}://{panel_data.panel_domain}/api/nodes"
             try:
-                async with httpx.AsyncClient(http2=True) as client:
+                timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+                async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                     response = await client.get(url, headers=headers, timeout=10)
                     response.raise_for_status()
 

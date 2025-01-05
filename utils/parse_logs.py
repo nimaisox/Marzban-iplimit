@@ -111,6 +111,7 @@ async def check_ip(ip_address: str) -> None | str:
         sys.exit(1)
 
     try:
+        timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
         if proxy_url:
             logger.info("Using proxy: %s", proxy_url)
             async with httpx.AsyncClient(http2=True,
