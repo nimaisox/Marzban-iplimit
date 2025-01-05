@@ -105,7 +105,7 @@ async def main():
         except Exception as e:
             logger.error(f"An error occurred in tasks: {e}")
         finally:
-            logger.info("All tasks completed.")
+            logger.info("All tasks  completed.")
 
 if __name__ == "__main__":
     while True:
