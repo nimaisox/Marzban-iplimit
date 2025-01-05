@@ -8,7 +8,7 @@ import re
 import sys
 
 from utils.check_usage import ACTIVE_USERS
-from utils.read_config import read_config
+from utils.read_config import ConfigManager
 from utils.types import UserType
 from utils.logs import logger
 
@@ -69,15 +69,15 @@ def is_valid_proxy(proxy_url: str) -> bool:
       - http://127.0.0.1:3128
     """
     proxy_regex = re.compile(
-        r"^(?P<protocol>socks5|http)://"       # Protocol (socks5 or http)
-        r"(?:(?P<username>[\w\-._~]+):(?P<password>[\w\-._~]+)@)?"  # Optional username:password
-        r"(?P<host>[\w\-._~]+|\d{1,3}(\.\d{1,3}){3})"  # Hostname or IP
-        r":(?P<port>\d{2,5})$"                # Port (2-5 digits)
+        r"^(?P<protocol>socks5|http)://"
+        r"(?:(?P<username>[\w\-._~]+):(?P<password>[\w\-._~]+)@)?"
+        r"(?P<host>[\w\-._~]+|\d{1,3}(\.\d{1,3}){3})"
+        r":(?P<port>\d{2,5})$"
     )
     return bool(proxy_regex.match(proxy_url))
 
 
-async def check_ip(ip_address: str) -> None | str:
+async def check_ip(ip_address: str, config_manager: ConfigManager) -> None | str:
     """
     Check the geographical location of an IP address.
 
@@ -86,41 +86,40 @@ async def check_ip(ip_address: str) -> None | str:
 
     Args:
         ip_address (str): The IP address to check.
+        config_manager (ConfigManager): Instance of ConfigManager to fetch configuration.
 
     Returns:
-        str: The country code of the IP address location, or None
+        str: The country code of the IP address location, or None.
     """
     if ip_address in CACHE:
         return CACHE[ip_address]
+
     endpoint, key = random.choice(list(API_ENDPOINTS.items()))
     url = endpoint + ip_address
     if "ipapi.co" in endpoint:
         url += "/country"
 
-    data = await read_config()
-    proxy_url = data.get("PROXY_FOR_API")
-    timeout = httpx.Timeout(10.0, connect=5.0)
-
-    if proxy_url and not is_valid_proxy(proxy_url):
-        logger.error(
-            "Invalid proxy format: %s. A valid proxy must follow one of these formats: "
-            "'socks5://username:password@host:port' or 'http://username:password@host:port', "
-            "where username and password are optional.", 
-            proxy_url
-        )
-        sys.exit(1)
-
     try:
+        config_data = await config_manager.read_config()
+        proxy_url = config_data.get("PROXY_FOR_API", None)
+
+        if proxy_url and not is_valid_proxy(proxy_url):
+            logger.error(
+                "Invalid proxy format: %s. A valid proxy must follow one of these formats: "
+                "'socks5://username:password@host:port' or 'http://username:password@host:port', "
+                "where username and password are optional.",
+                proxy_url
+            )
+            sys.exit(1)
+
         timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
-        if proxy_url:
-            logger.info("Using proxy: %s", proxy_url)
-            async with httpx.AsyncClient(http2=True,
-                                          proxy=proxy_url, timeout=timeout) as client:
-                resp = await client.get(url, timeout=2)
-        else:
-            logger.info("No proxy used")
-            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                resp = await client.get(url, timeout=2)
+
+        async with httpx.AsyncClient(http2=True,
+                                      proxy=proxy_url if proxy_url else None,
+                                        timeout=timeout) as client:
+            logger.info("Fetching IP info for %s using %s",
+                         ip_address, "proxy" if proxy_url else "direct connection")
+            resp = await client.get(url)
 
         resp.raise_for_status()
 
@@ -136,17 +135,20 @@ async def check_ip(ip_address: str) -> None | str:
         if country:
             CACHE[ip_address] = country
         return country
-    except (httpx.ProxyError, httpx.ConnectError,httpx.TimeoutException,httpx.HTTPStatusError) as e:
-        error_type = e.__class__.__name__.replace("Error", "").strip()
-        proxy_info = f" Using Proxy {proxy_url}" if proxy_url else ""
-        logger.error("%s error%s: %s", error_type, proxy_info, e)
+
+    except (httpx.ProxyError,
+             httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
+        proxy_info = f" using proxy {proxy_url}" if proxy_url else ""
+        logger.error("HTTP error%s: %s", proxy_info, e)
         if isinstance(e, httpx.HTTPStatusError):
-            logger.error("HTTP status %s for %s: %s",
-                        e.response.status_code, url, e.response.text)
+            logger.error("HTTP status %s for %s: %s", e.response.status_code, url, e.response.text)
+
     except Exception as e: # pylint: disable=broad-except
-        proxy_info = f" Using Proxy {proxy_url}" if proxy_url else ""
+        proxy_info = f" using proxy {proxy_url}" if proxy_url else ""
         logger.error("Unexpected error%s: %s", proxy_info, e)
-        return None
+
+    return None
+
 
 async def is_valid_ip(ip: str) -> bool:
     """
@@ -172,61 +174,80 @@ IP_V4_REGEX = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 EMAIL_REGEX = re.compile(r"email:\s*([A-Za-z0-9._%+-]+)")
 
 
-async def parse_logs(log: str) -> dict[str, UserType] | dict:  # pylint: disable=too-many-branches
+async def parse_logs(log: str, config_manager: ConfigManager) -> dict[str, UserType]:
     """
     Asynchronously parse logs to extract and validate IP addresses and emails.
 
     Args:
         log (str): The log to parse.
+        config_manager (ConfigManager): Instance of ConfigManager to fetch configuration.
 
     Returns:
-        list[UserType]
+        dict[str, UserType]: A dictionary of active users with their associated IPs.
     """
-    data = await read_config()
-    if data.get("INVALID_IPS"):
-        INVALID_IPS.update(data.get("INVALID_IPS"))
-    lines = log.splitlines()
-    for line in lines:
-        if "accepted" not in line:
-            continue
-        if "BLOCK]" in line:
-            continue
-        ip_v6_match = IP_V6_REGEX.search(line)
-        ip_v4_match = IP_V4_REGEX.search(line)
-        email_match = EMAIL_REGEX.search(line)
-        if ip_v6_match:
-            ip = ip_v6_match.group(1)
-        elif ip_v4_match:
-            ip = ip_v4_match.group(1)
-        else:
-            continue
-        if ip not in VALID_IPS:
-            is_valid_ip_test = await is_valid_ip(ip)
-            if is_valid_ip_test and ip not in INVALID_IPS:
-                if data["IP_LOCATION"] != "None":
-                    country = await check_ip(ip)
-                    if country and country == data["IP_LOCATION"]:
+    try:
+        config_data = await config_manager.read_config()
+        invalid_ips = config_data.get("INVALID_IPS", set())
+        ip_location = config_data.get("IP_LOCATION", "None")
+
+        if invalid_ips:
+            INVALID_IPS.update(invalid_ips)
+
+        lines = log.splitlines()
+
+        for line in lines:
+            if "accepted" not in line or "BLOCK]" in line:
+                continue
+
+            ip_v6_match = IP_V6_REGEX.search(line)
+            ip_v4_match = IP_V4_REGEX.search(line)
+            email_match = EMAIL_REGEX.search(line)
+
+            ip = None
+            if ip_v6_match:
+                ip = ip_v6_match.group(1)
+            elif ip_v4_match:
+                ip = ip_v4_match.group(1)
+
+            if not ip:
+                continue
+
+            if ip not in VALID_IPS:
+                is_valid_ip_test = await is_valid_ip(ip)
+                if not is_valid_ip_test or ip in INVALID_IPS:
+                    INVALID_IPS.add(ip)
+                    continue
+
+                if ip_location != "None":
+                    country = await check_ip(ip, config_manager)
+                    if country and country == ip_location:
                         VALID_IPS.append(ip)
-                    elif country and country != data["IP_LOCATION"]:
+                    else:
                         INVALID_IPS.add(ip)
                         continue
+
+            if email_match:
+                email = email_match.group(1)
+                email = await remove_id_from_username(email)
+                if email in INVALID_EMAILS:
+                    continue
             else:
                 continue
-        if email_match:
-            email = email_match.group(1)
-            email = await remove_id_from_username(email)
-            if email in INVALID_EMAILS:
-                continue
-        else:
-            continue
 
-        user = ACTIVE_USERS.get(email)
-        if user:
-            user.ip.append(ip)
-        else:
-            user = ACTIVE_USERS.setdefault(
-                email,
-                UserType(name=email, ip=[ip]),
-            )
+            user = ACTIVE_USERS.get(email)
+            if user:
+                user.ip.append(ip)
+            else:
+                ACTIVE_USERS[email] = UserType(name=email, ip=[ip])
 
-    return ACTIVE_USERS
+        return ACTIVE_USERS
+
+    except KeyError as error:
+        logger.error("Missing key in configuration: %s", error)
+        raise ValueError(f"Configuration error: missing key {error}") from error
+    except ValueError as error:
+        logger.error("Invalid value in configuration: %s", error)
+        raise
+    except Exception as error:
+        logger.error("Unexpected error in parse_logs: %s", error)
+        raise

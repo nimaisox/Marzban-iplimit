@@ -1,17 +1,13 @@
 """
 This module contains functions to get logs from the panel and nodes.
 """
-
-# 1. ماژول‌های استاندارد پایتون
 import asyncio
 import random
 import ssl
 import sys
 
-# 2. ماژول‌های داخلی پایتون (مانند asyncio import Task)
 from asyncio import Task
 
-# 3. ماژول‌های داخلی پروژه
 from utils.parse_logs import INVALID_IPS, parse_logs
 from utils.panel_api import get_nodes, get_token
 from utils.types import NodeType, PanelType
@@ -57,67 +53,40 @@ async def retrieve_token(panel_data: PanelType) -> str:
         logger.error("Failed to retrieve token: %s", error)
         raise error
 
-async def is_protocol_supported(url: str, context=None) -> bool:
-    """
-    Check if the protocol (WS/WSS) is supported by attempting a simple handshake.
-
-    Args:
-        url (str): The WebSocket URL to test.
-        ssl_context: SSL context for WSS connections.
-
-    Returns:
-        bool: True if the protocol is supported, False otherwise.
-    """
-    try:
-        async with websockets.connect(url, ssl=context) as ws:
-            await ws.send("ping")
-            await ws.recv()
-            return True
-    except websockets.exceptions.InvalidHandshake as handshake_error:
-        logger.error("Invalid handshake error for URL %s: %s", url, handshake_error)
-        return False
-    except websockets.exceptions.ConnectionClosedError as connection_error:
-        logger.error("Connection closed unexpectedly for URL %s: %s", url, connection_error)
-        return False
-    except asyncio.TimeoutError as timeout_error:
-        logger.error("Timeout error for URL %s: %s", url, timeout_error)
-        return False
-    except ssl.SSLError as ssl_error:
-        logger.error("SSL error for URL %s: %s", url, ssl_error)
-        return False
-
 
 async def get_panel_logs(panel_data: PanelType) -> None:
     """
     This function establishes a websocket connection to the main server and retrieves logs.
     """
     interval = random.choice(("0.9", "1.3", "1.5", "1.7"))
-    get_panel_token = await get_token(panel_data)
-    if isinstance(get_panel_token, ValueError):
-        raise get_panel_token
-    token = get_panel_token.panel_token
+    try:
+        get_panel_token = await get_token(panel_data)
+        token = get_panel_token.panel_token
+    except ValueError as error:
+        logger.error("Failed to retrieve token: %s", error)
+        raise error
 
-    last_successful_protocol = None
+    panel_domain = panel_data.panel_domain.replace("https://", "").replace("http://", "")
 
-    if last_successful_protocol:
-        schemes = [last_successful_protocol] + ["wss", "ws"]
+    if panel_data.panel_domain.startswith("https"):
+        schemes = ["wss"]
+    elif panel_data.panel_domain.startswith("http"):
+        schemes = ["ws"]
     else:
-        schemes = ["wss", "ws"]
+        message = "Unsupported protocol in panel domain. Ensure it starts with http or https."
+        logger.error(message)
+        raise ValueError(message)
 
     for scheme in schemes:
         url = (
-            f"{scheme}://{panel_data.panel_domain}/api/core/logs"
+            f"{scheme}://{panel_domain}/api/core/logs"
             f"?interval={interval}&token={token}"
         )
         ssl_ctx = ssl_context if scheme == "wss" else None
 
-        if not await is_protocol_supported(url, ssl_ctx):
-            continue
-
         while True:
             try:
                 async with websockets.connect(url, ssl=ssl_ctx) as ws:
-                    last_successful_protocol = scheme
                     log_message = f"Connected to panel logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -128,6 +97,9 @@ async def get_panel_logs(panel_data: PanelType) -> None:
             except websockets.exceptions.ConnectionClosedError as error:
                 logger.error("Connection closed unexpectedly for %s: %s", scheme, error)
                 break
+            except Exception as error:  # pylint: disable=broad-except
+                logger.error("Unexpected error with %s: %s", scheme, error)
+                break
 
 
 async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
@@ -135,32 +107,34 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
     Establish a WebSocket connection to a specific node and retrieve logs.
     """
     interval = random.choice(("0.9", "1.3", "1.5", "1.7"))
-    get_panel_token = await get_token(panel_data)
-    if isinstance(get_panel_token, ValueError):
-        raise get_panel_token
-    token = get_panel_token.panel_token
+    try:
+        get_panel_token = await get_token(panel_data)
+        token = get_panel_token.panel_token
+    except ValueError as error:
+        logger.error("Failed to retrieve token: %s", error)
+        raise error
 
-    last_successful_protocol = None
+    panel_domain = panel_data.panel_domain.replace("https://", "").replace("http://", "")
 
-    if last_successful_protocol:
-        schemes = [last_successful_protocol] + ["wss", "ws"]
+    if panel_data.panel_domain.startswith("https"):
+        schemes = ["wss"]
+    elif panel_data.panel_domain.startswith("http"):
+        schemes = ["ws"]
     else:
-        schemes = ["wss", "ws"]
+        message = "Unsupported protocol in panel domain. Ensure it starts with http or https."
+        logger.error(message)
+        raise ValueError(message)
 
     for scheme in schemes:
         url = (
-            f"{scheme}://{panel_data.panel_domain}/api/node/{node.node_id}/logs"
+            f"{scheme}://{panel_domain}/api/node/{node.node_id}/logs"
             f"?interval={interval}&token={token}"
         )
         ssl_ctx = ssl_context if scheme == "wss" else None
 
-        if not await is_protocol_supported(url, ssl_ctx):
-            continue
-
         while True:
             try:
                 async with websockets.connect(url, ssl=ssl_ctx) as ws:
-                    last_successful_protocol = scheme
                     log_message = f"Connected to node {node.node_id} logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -171,6 +145,15 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
             except websockets.exceptions.ConnectionClosedError as error:
                 logger.error(
                     "Connection closed for node [ID: %s, Name: %s] using %s: %s",
+                    node.node_id,
+                    node.node_name,
+                    scheme,
+                    error,
+                )
+                break
+            except Exception as error:  # pylint: disable=broad-except
+                logger.error(
+                    "Unexpected error for node [ID: %s, Name: %s] using %s: %s",
                     node.node_id,
                     node.node_name,
                     scheme,

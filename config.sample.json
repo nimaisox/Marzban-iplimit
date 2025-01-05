@@ -3,7 +3,7 @@
   "ADMINS": [
     "123456789"
   ],
-  "PANEL_DOMAIN": "",
+  "PANEL_DOMAIN": "https://example.com:443",
   "PANEL_USERNAME": "",
   "PANEL_PASSWORD": "",
   "CHECK_INTERVAL": 240,

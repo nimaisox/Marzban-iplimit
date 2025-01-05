@@ -25,7 +25,7 @@ from utils.panel_api import (
     enable_selected_users,
     get_nodes,
 )
-from utils.read_config import read_config
+from utils.read_config import ConfigManager
 from utils.types import PanelType
 
 VERSION = "1.0.8"
@@ -41,9 +41,12 @@ async def main():
     logger.info("Telegram Bot running...")
     asyncio.create_task(run_telegram_bot())
     await asyncio.sleep(2)
+
+    config_manager = ConfigManager(config_file="config.json")
+
     while True:
         try:
-            config_file = await read_config(check_required_elements=True)
+            config_file = await config_manager.read_config(check_required_elements=True)
             break
         except ValueError as error:
             logger.error(error)
@@ -94,10 +97,10 @@ async def main():
             name="cancel_all",
         )
         tg.create_task(
-            enable_dis_user(panel_data),
+            enable_dis_user(panel_data, config_manager),
             name="enable_dis_user",
         )
-        await run_check_users_usage(panel_data)
+        await run_check_users_usage(panel_data, config_manager)
 
 
 if __name__ == "__main__":

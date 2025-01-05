@@ -1,8 +1,6 @@
 """
 Read config file and return data.
 """
-# pylint: disable=global-statement
-
 import json
 import os
 import sys
@@ -10,54 +8,82 @@ import time
 
 from utils.logs import logger
 
-CONFIG_DATA = None
-LAST_READ_TIME = 0
-
-
-async def read_config(
-    check_required_elements=None,
-) -> dict:
+class ConfigManager:
     """
-    read and return data from a JSON file.
-    """
-    global CONFIG_DATA
-    global LAST_READ_TIME
-    config_file = "config.json"
+    A class to manage reading and validating configuration data from a JSON file.
 
-    if not os.path.exists(config_file):
-        logger.error("Config file not found.")
-        sys.exit()
-    file_mod_time = os.path.getmtime(config_file)
-    if CONFIG_DATA is None or file_mod_time > LAST_READ_TIME:
-        try:
-            with open(config_file, "r", encoding="utf-8") as f:
-                CONFIG_DATA = json.load(f)
-        except json.JSONDecodeError as error:
-            logger.error(
-                "Error decoding the file 'config.json'. Please check its syntax. Error details: %s"
-                , error
-            )
+    This class provides functionality to:
+    - Read the configuration file only when needed (lazy loading).
+    - Cache the configuration data for performance optimization.
+    - Validate the presence of required configuration elements.
+    
+    Attributes:
+        config_file (str): Path to the configuration file.
+        config_data (dict): Cached configuration data from the file.
+        last_read_time (float): Timestamp of the last successful read from the file.
+    """
+
+    def __init__(self, config_file="config.json"):
+        """
+        Initialize the ConfigManager with the specified configuration file.
+
+        Args:
+            config_file (str): Path to the JSON configuration file. Defaults to "config.json".
+        """
+        self.config_file = config_file
+        self.config_data = None
+        self.last_read_time = 0
+
+    async def read_config(self, check_required_elements=None) -> dict:
+        """
+        Read and return configuration data from the JSON file.
+
+        This method reads the file only if it has been modified since the last read
+        or if no data is currently cached. Optionally, it can validate the presence
+        of specific required elements in the configuration.
+
+        Args:
+            check_required_elements (list, optional): A list of keys that must be present
+                in the configuration data. Defaults to None.
+
+        Returns:
+            dict: The configuration data.
+
+        Raises:
+            ValueError: If a required element is missing from the configuration.
+            SystemExit: If the file is missing, contains invalid JSON, or lacks critical keys.
+        """
+        if not os.path.exists(self.config_file):
+            logger.error("Config file not found.")
             sys.exit()
-        if "BOT_TOKEN" not in CONFIG_DATA:
-            logger.error("BOT_TOKEN is not set in the config.json file.")
-            sys.exit()
-        if "ADMINS" not in CONFIG_DATA:
-            logger.error("ADMINS is not set in the config.json file.")
-            sys.exit()
-        LAST_READ_TIME = time.time()
-    if check_required_elements:
-        required_elements = [
-            "PANEL_DOMAIN",
-            "PANEL_USERNAME",
-            "PANEL_PASSWORD",
-            "CHECK_INTERVAL",
-            "TIME_TO_ACTIVE_USERS",
-            "IP_LOCATION",
-            "GENERAL_LIMIT",
-        ]
-        for element in required_elements:
-            if element not in CONFIG_DATA:
-                raise ValueError(
-                    f"Missing required element '{element}' in the config file."
+
+        file_mod_time = os.path.getmtime(self.config_file)
+        if self.config_data is None or file_mod_time > self.last_read_time:
+            try:
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    self.config_data = json.load(f)
+            except json.JSONDecodeError as error:
+                logger.error(
+                    "Error decoding the file '%s'. Please check its syntax. Error details: %s",
+                    self.config_file,
+                    error,
                 )
-    return CONFIG_DATA
+                sys.exit()
+
+            if "BOT_TOKEN" not in self.config_data:
+                logger.error("BOT_TOKEN is not set in the config file.")
+                sys.exit()
+            if "ADMINS" not in self.config_data:
+                logger.error("ADMINS is not set in the config file.")
+                sys.exit()
+
+            self.last_read_time = time.time()
+
+        if check_required_elements:
+            for element in check_required_elements:
+                if element not in self.config_data:
+                    raise ValueError(
+                        f"Missing required element '{element}' in the config file."
+                    )
+
+        return self.config_data

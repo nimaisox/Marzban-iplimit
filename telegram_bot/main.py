@@ -9,7 +9,7 @@ import os
 import sys
 import zipfile
 from utils.logs import logger
-from utils.read_config import read_config
+from utils.read_config import ConfigManager
 
 try:
     from telegram import Update
@@ -64,13 +64,24 @@ from telegram_bot.utils import (
     GET_TIME_TO_ACTIVE_USERS,
 ) = range(15)
 
-data = asyncio.run(read_config())
-try:
-    bot_token = data["BOT_TOKEN"]
-except KeyError as exc:
-    raise ValueError("BOT_TOKEN is missing in the config file.") from exc
-application = ApplicationBuilder().token(bot_token).build()
+config_manager = ConfigManager(config_file="config.json")
 
+async def initialize_bot():
+    """
+    Initialize the bot by loading configuration data.
+    """
+    try:
+        data = await config_manager.read_config(check_required_elements=["BOT_TOKEN"])
+        return data["BOT_TOKEN"]
+    except KeyError as exc:
+        logger.error("BOT_TOKEN is missing in the config file. Error: %s", exc)
+        sys.exit()
+    except ValueError as exc:
+        logger.error("Configuration error: %s", exc)
+        sys.exit()
+
+bot_token = asyncio.run(initialize_bot())
+application = ApplicationBuilder().token(bot_token).build()
 
 START_MESSAGE = """
 ✨<b>Commands List:</b>\n<b>/start</b> \n<code>start the bot</code>
