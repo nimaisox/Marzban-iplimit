@@ -80,6 +80,12 @@ class ConfigManager:
             self.last_read_time = time.time()
 
         if check_required_elements:
+            if check_required_elements is True:
+                check_required_elements = ["PANEL_USERNAME", "PANEL_PASSWORD", "PANEL_DOMAIN"]
+            elif not isinstance(check_required_elements, (list, tuple)):
+                raise TypeError(
+                    "check_required_elements باید لیست یا tuple از عناصر مورد نیاز باشد یا مقدار True."
+                )
             for element in check_required_elements:
                 if element not in self.config_data:
                     raise ValueError(
