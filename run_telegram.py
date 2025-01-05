@@ -1,7 +1,6 @@
 """Run the telegram bot."""
 
 import asyncio
-
 from telegram_bot.main import application, InvalidToken
 from utils.logs import logger
 
