@@ -72,36 +72,40 @@ async def main():
     await enable_selected_users(panel_data, dis_users)
     await get_nodes(panel_data)
     async with asyncio.TaskGroup() as tg:
-        logger.info("Start Create Panel Task Test: ")
-        await create_panel_task(panel_data, tg)
-        await asyncio.sleep(5)
-        nodes_list = await get_nodes(panel_data)
-        if nodes_list and not isinstance(nodes_list, ValueError):
-            logger.info("Start Create Nodes Task Test: ")
-            for node in nodes_list:
-                if node.status == "connected":
-                    await create_node_task(panel_data, tg, node)
-                    await asyncio.sleep(4)
-        logger.info("Start 'check_and_add_new_nodes' Task Test: ")
-        tg.create_task(
-            check_and_add_new_nodes(panel_data, tg),
-            name="add_new_nodes",
-        )
-        logger.info("Start 'handle_cancel' Task Test: ")
-        tg.create_task(
-            handle_cancel(panel_data, TASKS),
-            name="cancel_disable_nodes",
-        )
-        tg.create_task(
-            handle_cancel_all(TASKS, panel_data),
-            name="cancel_all",
-        )
-        tg.create_task(
-            enable_dis_user(panel_data, config_manager),
-            name="enable_dis_user",
-        )
-        await run_check_users_usage(panel_data, config_manager)
-
+        try:
+            logger.info("Start Create Panel Task Test: ")
+            await create_panel_task(panel_data, tg)
+            await asyncio.sleep(5)
+            nodes_list = await get_nodes(panel_data)
+            if nodes_list and not isinstance(nodes_list, ValueError):
+                logger.info("Start Create Nodes Task Test: ")
+                for node in nodes_list:
+                    if node.status == "connected":
+                        await create_node_task(panel_data, tg, node)
+                        await asyncio.sleep(4)
+            logger.info("Start 'check_and_add_new_nodes' Task Test: ")
+            tg.create_task(
+                check_and_add_new_nodes(panel_data, tg),
+                name="add_new_nodes",
+            )
+            logger.info("Start 'handle_cancel' Task Test: ")
+            tg.create_task(
+                handle_cancel(panel_data, TASKS),
+                name="cancel_disable_nodes",
+            )
+            tg.create_task(
+                handle_cancel_all(TASKS, panel_data),
+                name="cancel_all",
+            )
+            tg.create_task(
+                enable_dis_user(panel_data, config_manager),
+                name="enable_dis_user",
+            )
+            await asyncio.wait_for(run_check_users_usage(panel_data, config_manager), timeout=300)
+        except Exception as e:
+            logger.error(f"An error occurred in tasks: {e}")
+        finally:
+            logger.info("All tasks completed.")
 
 if __name__ == "__main__":
     while True:
