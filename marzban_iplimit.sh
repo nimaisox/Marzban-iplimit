@@ -417,9 +417,9 @@ EOL
     local config_file="$WORKDIR/config.json"
     while true; do
         echo "Choose an option:"
-        echo "1. Update BOT_TOKEN"
-        echo "2. Update ADMINS"
-        echo -e "3. Update PROXY_FOR_API ${YELLOW}(Optional)${RESET}"
+        echo "1. Set or Update BOT_TOKEN"
+        echo "2. Set or Update ADMINS"
+        echo -e "3. Set or Update PROXY_FOR_API ${YELLOW}(Optional)${RESET}"
         echo "Enter the corresponding number (or leave it blank to exit):"
         read -p "> " field
 
