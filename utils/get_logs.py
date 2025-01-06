@@ -218,7 +218,6 @@ async def handle_cancel(panel_data: PanelType, tasks: list[Task]) -> None:
 async def handle_cancel_all(tasks: list[Task], panel_data: PanelType) -> None:
     """
     An asynchronous coroutine that cancels All tasks in the given list.
-    To fix these issues: #67, #65, #62 And many more
 
     Args:
         tasks (list[Task]): The list of tasks to be cancelled.

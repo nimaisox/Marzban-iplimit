@@ -33,7 +33,7 @@ After that script runs automatically and you can see the logs.
 Marzban-iplimit can be controlled via a Telegram bot. Here are the available commands:
 
 - `/start`: Start the bot.
-- `/create_config`: Configure panel information (username, password, etc.).
+- `/setup`: Configure panel information (username, password, domain_panel).
 - `/add_special_limit`: Add a specific IPlimit for each user (e.g.,user limit: 5 ips).
 - `/remove_special_limit`: Remove a specific IPlimit for each user (e.g.,user limit: 5 ips).
 - `/show_special_limit`: Show the list of special IP limits.

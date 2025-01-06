@@ -79,7 +79,7 @@ START_MESSAGE = """
 <code>Display the list of exception users</code>
 
 <b>/setup</b>
-<code>Configure panel information (username, password, domain.)</code>
+<code>Configure panel information (username, password, domain_panel)</code>
 
 <b>/country_code</b>
 <code>Set your country code. Only IPs from the specified country are considered to improve accuracy</code>

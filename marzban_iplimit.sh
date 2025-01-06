@@ -47,7 +47,6 @@ download_service() {
     fi
 
     echo "Fetching stable releases from GitHub..."
-    # Fetch all releases and filter only stable ones
     download_url=$(curl -s "$api_url" | \
         jq -r '.[] | select(.prerelease == false) | .assets[] | select(.name | contains("'"$ARCHITECTURE"'") and contains("linux.bin")) | .browser_download_url' | head -n 1)
 

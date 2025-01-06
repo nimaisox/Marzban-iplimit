@@ -111,11 +111,10 @@ async def check_ip(ip_address: str, config_manager: ConfigManager) -> None | str
 
     while len(tried_endpoints) < len(API_ENDPOINTS):
         endpoint, key = random.choice(list(API_ENDPOINTS.items()))
-        
-        # Skip endpoints already tried
+
         if endpoint in tried_endpoints:
             continue
-        
+
         tried_endpoints.add(endpoint)
         url = endpoint + ip_address
         if "ipapi.co" in endpoint:
@@ -130,26 +129,25 @@ async def check_ip(ip_address: str, config_manager: ConfigManager) -> None | str
                 resp = await client.get(url)
                 resp.raise_for_status()
 
-            # Process response
+
             if "ipapi.co" in endpoint:
                 country = resp.text.strip()
                 if not country or len(country) != 2:
                     logger.error("Invalid response from ipapi.co: %s", resp.text)
-                    continue  # Try another endpoint
+                    continue
             else:
                 info = resp.json()
                 country = info.get(key) if key else resp.text.strip()
 
-            # Validate the response
             if not country or len(country) != 2 or not country.isalpha():
                 logger.error("Invalid country code from endpoint %s: %s", endpoint, country)
-                continue  # Try another endpoint
+                continue
 
             CACHE[ip_address] = country
             return country
 
         except httpx.HTTPStatusError as e:
-            if e.response.status_code == 429:  # Too Many Requests
+            if e.response.status_code == 429:
                 logger.warning("Too Many Requests from endpoint %s. Trying another endpoint...", endpoint)
                 continue
             logger.error("HTTP status %s for %s: %s", e.response.status_code, url, e.response.text)
