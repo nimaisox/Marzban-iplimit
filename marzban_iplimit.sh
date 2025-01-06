@@ -343,7 +343,7 @@ logs_service() {
     while true; do
         clear
         echo "╔══════════════════════════════════════════════════╗"
-        echo "║              Select a Log to View                ║"
+        echo "║               Select a Log to View               ║"
         echo "╠══════════════════════════════════════════════════╣"
         echo "║ 1) View app.log                                  ║"
         echo "║ 2) View service.log                              ║"
@@ -668,7 +668,7 @@ EXIT_PROGRAM=false
 main_menu() {
     clear
     echo "╔════════════════════════════════════════════════╗"
-    echo "║           Manage Marzban Iplimit Service       ║"
+    echo "║         Manage Marzban Iplimit Service         ║"
     echo "╠════════════════════════════════════════════════╣"
     echo "║ 1) Install                                     ║"
     echo "║ 2) Enable AutoStart                            ║"
