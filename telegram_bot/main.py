@@ -125,8 +125,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="🚫 You are not an admin.\nContact an admin to get access."
         )
         return
-    else:
-        await update.message.reply_html(START_MESSAGE)
+
+    await update.message.reply_html(START_MESSAGE)
 
 async def backup(update: Update, _context: ContextTypes.DEFAULT_TYPE):
     """
@@ -139,29 +139,36 @@ async def backup(update: Update, _context: ContextTypes.DEFAULT_TYPE):
         _context (ContextTypes.DEFAULT_TYPE): Context for the current conversation.
     """
     if not await is_admin(update):
+        await update.message.reply_html(
+            text="🚫 You are not authorized to use this command."
+        )
         return
 
     files_to_zip = ["config.json", ".disable_users.json"]
     backup_filename = "backup.zip"
-    with zipfile.ZipFile(backup_filename, "w") as zipf:
-        for file in files_to_zip:
-            if os.path.exists(file):
-                zipf.write(file)
-            else:
-                await update.message.reply_html(
-                    text=f"⚠️ File <code>{file}</code> not found. Skipping..."
-                )
+
     try:
-        await update.message.reply_document(
-            document=open(backup_filename, "rb"),
-            caption="📦 Here is your backup file containing the requested files."
-        )
-    except Exception as e:  # pylint: disable=broad-except
+        with zipfile.ZipFile(backup_filename, "w") as zipf:
+            for file in files_to_zip:
+                if os.path.exists(file):
+                    zipf.write(file)
+                else:
+                    await update.message.reply_html(
+                        text=f"⚠️ File <code>{file}</code> not found. Skipping..."
+                    )
+
+        with open(backup_filename, "rb") as backup_file:
+            await update.message.reply_document(
+                document=backup_file,
+                caption="📦 Here is your backup file containing the requested files."
+            )
+    except Exception as e: # pylint: disable=broad-except
         await update.message.reply_html(
-            text=f"🚨 Error occurred while sending the backup file: <code>{str(e)}</code>"
+            text=f"🚨 Error occurred while creating or sending the backup file:<code>{str(e)}</code>"
         )
-    if os.path.exists(backup_filename):
-        os.remove(backup_filename)
+    finally:
+        if os.path.exists(backup_filename):
+            os.remove(backup_filename)
 
 async def add_admin(update: Update, _context: ContextTypes.DEFAULT_TYPE):
     """
