@@ -94,60 +94,77 @@ async def check_ip(ip_address: str, config_manager: ConfigManager) -> None | str
     if ip_address in CACHE:
         return CACHE[ip_address]
 
-    endpoint, key = random.choice(list(API_ENDPOINTS.items()))
-    url = endpoint + ip_address
-    if "ipapi.co" in endpoint:
-        url += "/country"
+    config_data = await config_manager.read_config()
+    proxy_url = config_data.get("PROXY_FOR_API", None)
 
-    try:
-        config_data = await config_manager.read_config()
-        proxy_url = config_data.get("PROXY_FOR_API", None)
+    if proxy_url and not is_valid_proxy(proxy_url):
+        logger.error(
+            "Invalid proxy format: %s. A valid proxy must follow one of these formats: "
+            "'socks5://username:password@host:port' or 'http://username:password@host:port', "
+            "where username and password are optional.",
+            proxy_url
+        )
+        sys.exit(1)
 
-        if proxy_url and not is_valid_proxy(proxy_url):
-            logger.error(
-                "Invalid proxy format: %s. A valid proxy must follow one of these formats: "
-                "'socks5://username:password@host:port' or 'http://username:password@host:port', "
-                "where username and password are optional.",
-                proxy_url
-            )
-            sys.exit(1)
+    timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+    tried_endpoints = set()
 
-        timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
-
-        async with httpx.AsyncClient(http2=True,
-                                      proxy=proxy_url if proxy_url else None,
-                                        timeout=timeout) as client:
-            logger.info("Fetching IP info for %s using %s",
-                         ip_address, "proxy" if proxy_url else "direct connection")
-            resp = await client.get(url)
-
-        resp.raise_for_status()
-
+    while len(tried_endpoints) < len(API_ENDPOINTS):
+        endpoint, key = random.choice(list(API_ENDPOINTS.items()))
+        
+        # Skip endpoints already tried
+        if endpoint in tried_endpoints:
+            continue
+        
+        tried_endpoints.add(endpoint)
+        url = endpoint + ip_address
         if "ipapi.co" in endpoint:
-            country = resp.text.strip()
-            if not country or len(country) != 2:
-                logger.error("Invalid response from ipapi.co: %s", resp.text)
-                return None
-        else:
-            info = resp.json()
-            country = info.get(key) if key else resp.text.strip()
+            url += "/country"
 
-        if country:
+        try:
+            async with httpx.AsyncClient(http2=True,
+                                          proxy=proxy_url if proxy_url else None,
+                                          timeout=timeout) as client:
+                logger.info("Fetching IP info for %s using %s via %s",
+                            ip_address, "proxy" if proxy_url else "direct connection", endpoint)
+                resp = await client.get(url)
+                resp.raise_for_status()
+
+            # Process response
+            if "ipapi.co" in endpoint:
+                country = resp.text.strip()
+                if not country or len(country) != 2:
+                    logger.error("Invalid response from ipapi.co: %s", resp.text)
+                    continue  # Try another endpoint
+            else:
+                info = resp.json()
+                country = info.get(key) if key else resp.text.strip()
+
+            # Validate the response
+            if not country or len(country) != 2 or not country.isalpha():
+                logger.error("Invalid country code from endpoint %s: %s", endpoint, country)
+                continue  # Try another endpoint
+
             CACHE[ip_address] = country
-        return country
+            return country
 
-    except (httpx.ProxyError,
-             httpx.ConnectError, httpx.TimeoutException, httpx.HTTPStatusError) as e:
-        proxy_info = f" using proxy {proxy_url}" if proxy_url else ""
-        logger.error("HTTP error%s: %s", proxy_info, e)
-        if isinstance(e, httpx.HTTPStatusError):
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429:  # Too Many Requests
+                logger.warning("Too Many Requests from endpoint %s. Trying another endpoint...", endpoint)
+                continue
             logger.error("HTTP status %s for %s: %s", e.response.status_code, url, e.response.text)
 
-    except Exception as e: # pylint: disable=broad-except
-        proxy_info = f" using proxy {proxy_url}" if proxy_url else ""
-        logger.error("Unexpected error%s: %s", proxy_info, e)
+        except (httpx.ProxyError, httpx.ConnectError, httpx.TimeoutException) as e:
+            logger.warning("Connection error using endpoint %s%s: %s", endpoint, f" via proxy {proxy_url}" if proxy_url else "", e)
+            return None
 
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Unexpected error using endpoint %s%s: %s", endpoint, f" via proxy {proxy_url}" if proxy_url else "", e)
+            return None
+
+    logger.error("All API endpoints failed for IP: %s", ip_address)
     return None
+
 
 
 async def is_valid_ip(ip: str) -> bool:
