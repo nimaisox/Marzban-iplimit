@@ -418,7 +418,7 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
     while True:
         try:
             config_data = await config_manager.read_config()
-            time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS", 60))
+            time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
 
             await asyncio.sleep(time_to_active_users)
 
