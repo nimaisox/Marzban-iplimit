@@ -114,7 +114,7 @@ async def is_admin(update: Update) -> bool:
     return False
 
 
-async def start(update: Update):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Start function for the bot. Checks if the user is an admin and responds accordingly.
     """
