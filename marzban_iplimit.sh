@@ -416,11 +416,11 @@ EOL
     local confirm
     local config_file="$WORKDIR/config.json"
     while true; do
-        echo -e "Choose an option:"
+        echo "Choose an option:"
         echo "1. Update BOT_TOKEN"
         echo "2. Update ADMINS"
         echo -e "3. Update PROXY_FOR_API ${YELLOW}(Optional)${RESET}"
-        echo -e "Enter the corresponding number (or leave it blank to exit):"
+        echo "Enter the corresponding number (or leave it blank to exit):"
         read -p "> " field
 
         if [[ -z "$field" ]]; then
