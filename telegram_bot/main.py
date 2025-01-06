@@ -662,4 +662,4 @@ application.add_handler(CommandHandler("set_general_limit_number", set_general_l
 application.add_handler(CommandHandler("country_code", set_country_code))
 application.add_handler(CommandHandler("set_check_interval", set_check_interval))
 application.add_handler(CommandHandler("set_time_to_active_users", set_time_to_active_users))
-application.add_handler(CommandHandler("setup_panel", setup_panel))
+application.add_handler(CommandHandler("setup", setup_panel))
