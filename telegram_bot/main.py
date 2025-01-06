@@ -118,6 +118,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Start function for the bot. Checks if the user is an admin and responds accordingly.
     """
+    _ = context
+
     if not await is_admin(update):
         await update.message.reply_html(
             text="🚫 You are not an admin.\nContact an admin to get access."
@@ -652,7 +654,6 @@ async def setup_panel(update: Update, _context: ContextTypes.DEFAULT_TYPE):
             text=f"🚨 Error occurred while setting up panel: <code>{str(e)}</code>"
         )
 
-# ثبت هندلر در برنامه
 application.add_handler(CommandHandler("backup", backup))
 application.add_handler(CommandHandler("start", start))
 application.add_handler(CommandHandler("add_special_limit", add_special_limit))

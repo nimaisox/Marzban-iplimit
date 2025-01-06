@@ -1,11 +1,12 @@
 {
-  "BOT_TOKEN": "",
+  "BOT_TOKEN": "TOKEN",
   "ADMINS": [
     "123456789"
   ],
   "PANEL_DOMAIN": "https://example.com:443",
-  "PANEL_USERNAME": "",
-  "PANEL_PASSWORD": "",
+  "PANEL_USERNAME": "admin",
+  "PANEL_PASSWORD": "admin",
+  "PROXY_FOR_API": "socks5://usename:password@127.0.0.1:10809",
   "CHECK_INTERVAL": 240,
   "TIME_TO_ACTIVE_USERS": 7200,
   "IP_LOCATION": "IR",
@@ -13,7 +14,6 @@
   "EXCEPT_USERS": [
     "admin"
   ],
-  "PROXY_FOR_API": "socks5://usename:password@127.0.0.1:10809",
   "SPECIAL_LIMIT": {
     "admin1": 4,
     "admin2": 3
