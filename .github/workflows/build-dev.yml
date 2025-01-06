@@ -4,10 +4,10 @@ on: [push]
 
 jobs:
   check-pylint:
-    runs-on: [ubuntu-22.04]
+    runs-on: [ubuntu-20.04]
     strategy:
       matrix: 
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
@@ -42,7 +42,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: "pip"
           cache-dependency-path: |
             **/requirements*.txt
@@ -71,7 +71,7 @@ jobs:
 
   download-and-use:
     needs: [build]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         include:

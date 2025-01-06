@@ -9,10 +9,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             os_name: linux
             arch: x86_64
-          - os: ubuntu-22.04
+          - os: ubuntu-20.04
             os_name: linux
             arch: arm64
     runs-on: ${{ matrix.os }}
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: "pip"
           cache-dependency-path: |
             **/requirements*.txt
