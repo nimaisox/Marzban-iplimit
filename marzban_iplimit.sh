@@ -4,6 +4,7 @@ SERVICE_NAME="marzban-iplimit"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 RED="\033[31m"
 GREEN="\033[32m"
+YELLOW="\033[33m"
 RESET="\033[0m"
 FILENAME="marzban_iplimit.bin"
 
@@ -415,14 +416,20 @@ EOL
     local confirm
     local config_file="$WORKDIR/config.json"
     while true; do
-        read -p "Do you want to update BOT_TOKEN, ADMINS, or PROXY? (Enter 'token', 'admins', or 'proxy', or leave it blank to exit): " field
+        echo -e "Choose an option:"
+        echo "1. Update BOT_TOKEN"
+        echo "2. Update ADMINS"
+        echo "3. Update PROXY_FOR_API ${YELLOW}(Optional)${RESET}"
+        echo "Enter the corresponding number (or leave it blank to exit):"
+        read -p "> " field
+
         if [[ -z "$field" ]]; then
             echo "Exiting configuration menu..."
             break
         fi
 
         case "$field" in
-            token)
+            1)
                 value=$(jq -r '.BOT_TOKEN' "$config_file" 2>/dev/null || echo "")
                 if [ -z "$value" ]; then
                     echo "No BOT_TOKEN is currently set."
@@ -450,7 +457,7 @@ EOL
                 done
                 ;;
 
-            admins)
+            2)
                 value=$(jq -r '.ADMINS[]' "$config_file" 2>/dev/null || echo "[]")
                 if [ -z "$value" ]; then
                     echo "No ADMINS are currently set."
@@ -484,7 +491,7 @@ EOL
                 done
                 ;;
 
-            proxy)
+            3)
                 value=$(jq -r '.PROXY_FOR_API' "$config_file" 2>/dev/null || echo "")
                 if [ -z "$value" ]; then
                     echo "No PROXY_FOR_API is currently set."
@@ -496,7 +503,7 @@ EOL
                     fi
                 fi
 
-                echo "Enter the proxy in the format http://username:password@ip:port or socks5://username:password@ip:port:"
+                echo -e "${YELLOW}Enter the proxy in the format http://username:password@ip:port or socks5://username:password@ip:port (Optional - leave it blank if not needed):${RESET}"
                 while true; do
                     read -p "Enter new PROXY_FOR_API (or leave it blank to stop): " value
                     if [[ -z "$value" ]]; then
@@ -513,7 +520,7 @@ EOL
                 ;;
 
             *)
-                echo "Invalid option. Please enter 'token', 'admins', or 'proxy'."
+                echo "Invalid option. Please enter a valid number (1, 2, or 3)."
                 ;;
         esac
     done

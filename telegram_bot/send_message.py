@@ -2,8 +2,8 @@
 Send logs to telegram bot.
 """
 import re
-from telegram_bot.main import application, BadRequest,asyncio
-from telegram_bot.utils import check_admin
+from telegram_bot.main import application, BadRequest, asyncio
+from utils.read_config import ConfigManager
 from utils.logs import logger
 
 def sanitize_message(msg: str, parse_mode: str = "HTML") -> list:
@@ -39,7 +39,10 @@ def sanitize_message(msg: str, parse_mode: str = "HTML") -> list:
 
 async def send_logs(msg):
     """Send logs to all admins."""
-    admins = await check_admin()
+    config_manager = ConfigManager(config_file="config.json")
+    config = await config_manager.read_config()
+    admins = config.get("ADMINS", [])
+
     retries = 3
     delay_between_retries = 2
     delay_between_messages = 1

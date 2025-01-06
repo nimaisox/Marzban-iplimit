@@ -215,21 +215,6 @@ async def handle_cancel(panel_data: PanelType, tasks: list[Task]) -> None:
         await asyncio.sleep(20)
 
 
-async def handle_cancel_one(tasks: list[Task]) -> None:
-    """
-    *This is used for tests*
-    An asynchronous coroutine that cancels just one tasks in the given list.
-
-    Args:
-        tasks (list[Task]): The list of tasks to be cancelled.
-    """
-    for task in tasks:
-        if task.get_name() == "Task-panel":
-            logger.warning("Cancelling %s...", task.get_name())
-            task.cancel()
-            tasks.remove(task)
-
-
 async def handle_cancel_all(tasks: list[Task], panel_data: PanelType) -> None:
     """
     An asynchronous coroutine that cancels All tasks in the given list.
@@ -238,12 +223,11 @@ async def handle_cancel_all(tasks: list[Task], panel_data: PanelType) -> None:
     Args:
         tasks (list[Task]): The list of tasks to be cancelled.
     """
-    # pylint: disable=duplicate-code
     async with asyncio.TaskGroup() as tg:
         while True:
             await asyncio.sleep(8192)  # =~ 2 hours and 27 minutes
             for task in tasks:
-                logger.warning("Cancelling %s...", task.get_name())
+                logger.warning(" %s...", task.get_name())
                 task.cancel()
                 tasks.remove(task)
             logger.info("Start Create Panel Task Test: ")

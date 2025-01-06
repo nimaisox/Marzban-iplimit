@@ -34,15 +34,16 @@ Marzban-iplimit can be controlled via a Telegram bot. Here are the available com
 
 - `/start`: Start the bot.
 - `/create_config`: Configure panel information (username, password, etc.).
-- `/set_special_limit`: Set a specific IP limit for each user (e.g., test_user limit: 5 ips).
+- `/add_special_limit`: Add a specific IPlimit for each user (e.g.,user limit: 5 ips).
+- `/remove_special_limit`: Remove a specific IPlimit for each user (e.g.,user limit: 5 ips).
 - `/show_special_limit`: Show the list of special IP limits.
-- `/add_admin`: Give access to another chat ID and create a new admin for the bot.
-- `/admins_list`: Show the list of active bot admins.
-- `/remove_admin`: Remove an admin's access to the bot.
-- `/country_code`: Set your country. Only IPs related to that country are counted (to increase accuracy).
-- `/set_except_user`: Add a user to the exception list.
+- `/add_except_user`: Add a user to the exception list.
 - `/remove_except_user`: Remove a user from the exception list.
 - `/show_except_users`: Show the list of users in the exception list.
+- `/add_admin`: Give access to another chat ID and create a new admin for the bot.
+- `/remove_admin`: Remove an admin's access to the bot.
+- `/show_admins`: Show the list of active bot admins.
+- `/country_code`: Set your country. Only IPs related to that country are counted (to increase accuracy).
 - `/set_general_limit_number`: Set the general limit number. If a user is not in the special limit list, this is their limit number.
 - `/set_check_interval`: Set the check interval time.
 - `/set_time_to_active_users`: Set the time to active users.

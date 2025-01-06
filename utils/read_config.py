@@ -91,3 +91,26 @@ class ConfigManager:
                     )
 
         return self.config_data
+
+    async def update_config(self, updated_data: dict):
+        """
+        Updates the configuration file with the provided data.
+
+        Args:
+            updated_data (dict): The data to merge into the existing configuration.
+
+        Returns:
+            None
+        """
+        if self.config_data is None:
+            await self.read_config()
+
+        self.config_data.update(updated_data)
+        try:
+            with open(self.config_file, "w", encoding="utf-8") as f:
+                json.dump(self.config_data, f, indent=4)
+            self.last_read_time = time.time()
+            logger.info("Configuration file updated successfully.")
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Error writing to config file: %s", e)
+            raise
