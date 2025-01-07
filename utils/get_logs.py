@@ -275,9 +275,23 @@ async def create_panel_task(panel_data: PanelType, tg: asyncio.TaskGroup) -> Non
         panel_data (PanelType): The credentials for the panel.
         tg (asyncio.TaskGroup): The TaskGroup to which the new task will be added.
     """
-    TASKS.append(
-        tg.create_task(get_panel_logs(panel_data), name="Task-panel"),
-    )
+    try:
+        # Check for duplicate tasks
+        if any(task.get_name() == "Task-panel" for task in TASKS):
+            logger.info("Task-panel already exists. Skipping creation.")
+            return
+
+        # Create and add the new task
+        logger.info("Creating Task-panel...")
+        new_task = tg.create_task(get_panel_logs(panel_data), name="Task-panel")
+        TASKS.append(new_task)
+
+        # Monitor task completion
+        new_task.add_done_callback(lambda t: TASKS.remove(new_task))
+        logger.info("Task-panel successfully created and added to TASKS.")
+    except Exception as e: # pylint: disable=broad-except
+        logger.error("Failed to create Task-panel: %s", e)
+
 
 
 async def create_node_task(
