@@ -5,7 +5,6 @@ main file that run other files and functions to run the program.
 
 import argparse
 import asyncio
-import time
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
@@ -28,84 +27,96 @@ from utils.panel_api import (
 from utils.read_config import ConfigManager
 from utils.types import PanelType
 
-VERSION = "1.0.8"
-parser = argparse.ArgumentParser(description="Help message")
+VERSION = "1.0.0"
+parser = argparse.ArgumentParser(description="Run the program with various options.")
 parser.add_argument("--version", action="version", version=VERSION)
 args = parser.parse_args()
 
 dis_obj = DisabledUsers()
 
 
+async def initialize_config(config_manager):
+    """Load and validate configuration."""
+    while True:
+        try:
+            config_file = await config_manager.read_config(check_required_elements=True)
+            logger.info("Configuration loaded successfully.")
+            return config_file
+        except ValueError as error:
+            logger.error("Configuration error: %s", error)
+            await send_logs(f"<code>{error}</code>")
+            await send_logs(
+                "Please fill the <b>required</b> elements (details with /start):\n"
+                "/create_config: <code>Config panel information (username, password,...)</code>\n"
+                "/country_code: <code>Set your country code</code>\n"
+                "/set_general_limit_number: <code>Set the general limit number</code>\n"
+                "/set_check_interval: <code>Set the check interval time</code>\n"
+                "/set_time_to_active_users: <code>Set the time to active users</code>\n"
+                "\nRetrying in <b>60 seconds</b>."
+            )
+            await asyncio.sleep(60)
+
+
+async def run_tasks(panel_data, config_manager):
+    """Run all the tasks required for the program."""
+    config_file = await config_manager.read_config(check_required_elements=True)
+    time_to_active_users = int(config_file.get("TIME_TO_ACTIVE_USERS"))
+    expired_users= await dis_obj.get_and_remove_expired_users(duration_seconds=time_to_active_users)
+    if expired_users:
+        await enable_selected_users(panel_data, set(expired_users))
+
+    await get_nodes(panel_data)
+
+    async with asyncio.TaskGroup() as tg:
+        logger.info("Starting Panel Task...")
+        await create_panel_task(panel_data, tg)
+        await asyncio.sleep(5)
+
+        nodes_list = await get_nodes(panel_data)
+        if nodes_list and not isinstance(nodes_list, ValueError):
+            logger.info("Starting Node Tasks...")
+            for node in nodes_list:
+                if node.status == "connected":
+                    await create_node_task(panel_data, tg, node)
+                    await asyncio.sleep(4)
+
+        logger.info("Starting additional background tasks...")
+        tg.create_task(check_and_add_new_nodes(panel_data, tg), name="add_new_nodes")
+        tg.create_task(handle_cancel(panel_data, TASKS), name="cancel_disable_nodes")
+        tg.create_task(handle_cancel_all(TASKS, panel_data), name="cancel_all")
+        tg.create_task(enable_dis_user(panel_data, config_manager), name="enable_dis_user")
+        await run_check_users_usage(panel_data, config_manager)
+
+
 async def main():
-    """Main function to run the code."""
-    logger.info("Telegram Bot running...")
+    """Main function to initialize and run the program."""
+    logger.info("Starting Telegram Bot...")
     asyncio.create_task(run_telegram_bot())
     await asyncio.sleep(2)
 
     config_manager = ConfigManager(config_file="config.json")
+    config_file = await initialize_config(config_manager)
 
-    while True:
-        try:
-            config_file = await config_manager.read_config(check_required_elements=True)
-            break
-        except ValueError as error:
-            logger.error(error)
-            await send_logs(("<code>" + str(error) + "</code>"))
-            await send_logs(
-                "Please fill the <b>required</b> elements"
-                + " (you can see more detail for each one with sending /start):\n"
-                + "/create_config: <code>Config panel information (username, password,...)</code>\n"
-                + "/country_code: <code>Set your country code"
-                + " (to increase accuracy)</code>\n"
-                + "/set_general_limit_number: <code>Set the general limit number</code>\n"
-                + "/set_check_interval: <code>Set the check interval time</code>\n"
-                + "/set_time_to_active_users: <code>Set the time to active users</code>\n"
-                + "\nIn <b>60 seconds</b> later the program will try again."
-            )
-            await asyncio.sleep(60)
     panel_data = PanelType(
         config_file["PANEL_USERNAME"],
         config_file["PANEL_PASSWORD"],
         config_file["PANEL_DOMAIN"],
     )
-    dis_users = await dis_obj.read_and_clear_users()
-    await enable_selected_users(panel_data, dis_users)
-    await get_nodes(panel_data)
-    async with asyncio.TaskGroup() as tg:
-        logger.info("Start Create Panel Task Test: ")
-        await create_panel_task(panel_data, tg)
-        await asyncio.sleep(5)
-        nodes_list = await get_nodes(panel_data)
-        if nodes_list and not isinstance(nodes_list, ValueError):
-            logger.info("Start Create Nodes Task Test: ")
-            for node in nodes_list:
-                if node.status == "connected":
-                    await create_node_task(panel_data, tg, node)
-                    await asyncio.sleep(4)
-        logger.info("Start 'check_and_add_new_nodes' Task Test: ")
-        tg.create_task(
-            check_and_add_new_nodes(panel_data, tg),
-            name="add_new_nodes",
-        )
-        logger.info("Start 'handle_cancel' Task Test: ")
-        tg.create_task(
-            handle_cancel(panel_data, TASKS),
-            name="cancel_disable_nodes",
-        )
-        tg.create_task(
-            handle_cancel_all(TASKS, panel_data),
-            name="cancel_all",
-        )
-        tg.create_task(
-            enable_dis_user(panel_data, config_manager),
-            name="enable_dis_user",
-        )
-        await (run_check_users_usage(panel_data, config_manager))
-
-if __name__ == "__main__":
     while True:
         try:
-            asyncio.run(main())
-        except Exception as er:  # pylint: disable=broad-except
-            logger.error(er)
-            time.sleep(10)
+            await run_tasks(panel_data, config_manager)
+            await asyncio.sleep(60)
+        except Exception as e: # pylint: disable=broad-except
+            logger.error("Error during task execution: %s", e)
+            await send_logs(f"Unexpected error: <code>{e}</code>")
+            await asyncio.sleep(10)
+
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Program interrupted by user. Exiting gracefully.")
+    except Exception as e: # pylint: disable=broad-except
+        logger.critical("Unhandled exception in main loop: %s", e)
+        raise
