@@ -91,19 +91,22 @@ async def handle_disabled_users_on_exit(panel_data):
         logger.error("Error while handling disabled users during exit: %s", e)
 
 def handle_exit_signal(loop, panel_data):
-    """Handle termination signals, run cleanup, and exit immediately."""
+    """Handle termination signals and exit immediately."""
     logger.info("Received termination signal. Executing cleanup...")
-    
-    # Run handle_disabled_users_on_exit and then exit immediately
-    asyncio.create_task(final_cleanup_and_exit(panel_data))
+    asyncio.create_task(final_cleanup_and_exit(loop, panel_data))
 
-async def final_cleanup_and_exit(panel_data):
+async def final_cleanup_and_exit(loop, panel_data):
     """Run final cleanup and exit the program."""
     try:
+        # Perform essential cleanup
         await handle_disabled_users_on_exit(panel_data)
+    except Exception as e:
+        logger.error(f"Error during cleanup: {e}")
     finally:
         logger.info("Cleanup completed. Exiting now...")
-        sys.exit(0)  # Exit the program immediately after cleanup
+        # Stop the loop immediately
+        loop.stop()
+        sys.exit(0)  # Exit immediately after stopping the loop
 
 async def main():
     """Main function to initialize and run the program."""
@@ -137,7 +140,9 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         sys.exit(0)  # Exit immediately if KeyboardInterrupt occurs
