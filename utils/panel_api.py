@@ -69,124 +69,6 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
     logger.error(message)
     raise ValueError(message)
 
-
-async def all_user(panel_data: PanelType) -> list[UserType] | ValueError:
-    """
-    Get the list of all users from the panel API.
-
-    Args:
-        panel_data (PanelType): A PanelType object containing
-        the username, password, and domain for the panel API.
-
-    Returns:
-        list[UserType]: The list of user objects.
-
-    Raises:
-        ValueError: If the function fails to get the users after multiple attempts.
-    """
-    try:
-        get_panel_token = await get_token(panel_data)
-        token = get_panel_token.panel_token
-    except ValueError as error:
-        logger.error("Failed to retrieve token: %s", error)
-        raise error
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-    }
-    url = f"{panel_data.panel_domain}/api/users"
-
-    for attempt in range(20):
-        try:
-            timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
-            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                response = await client.get(url, headers=headers, timeout=10)
-                response.raise_for_status()
-
-            user_inform = response.json()
-            logger.info("Successfully fetched users.")
-            return [
-                UserType(name=user["username"]) for user in user_inform["users"]
-            ]
-        except httpx.HTTPStatusError:
-            message = f"[{response.status_code}] {response.text}"
-            await send_logs(message)
-            logger.error(message)
-        except Exception as error:  # pylint: disable=broad-except
-            message = f"An unexpected error occurred: {error}"
-            await send_logs(message)
-            logger.error(message)
-
-        await asyncio.sleep(random.randint(2, 5) * (attempt + 1))
-
-    message = (
-        "Failed to get users after 20 attempts. Make sure the panel is running "
-        "and the username and password are correct."
-    )
-    await send_logs(message)
-    logger.error(message)
-    raise ValueError(message)
-
-
-async def enable_all_user(panel_data: PanelType) -> None | ValueError:
-    """
-    Enable all users on the panel.
-
-    Args:
-        panel_data (PanelType): A PanelType object containing
-        the username, password, and domain for the panel API.
-
-    Returns:
-        None
-
-    Raises:
-        ValueError: If the function fails to enable the users after multiple attempts.
-    """
-    try:
-        get_panel_token = await get_token(panel_data)
-        token = get_panel_token.panel_token
-    except ValueError as error:
-        logger.error("Failed to retrieve token: %s", error)
-        raise error
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-    }
-
-    try:
-        users = await all_user(panel_data)
-    except ValueError as error:
-        logger.error("Failed to retrieve all users: %s", error)
-        raise error
-
-    url_template = f"{panel_data.panel_domain}/api/user/{{username}}"
-
-    for username in users:
-        url = url_template.format(username=username.name)
-        status = {"status": "active"}
-        try:
-            timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
-            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                response = await client.put(
-                    url, json=status, headers=headers
-                )
-                response.raise_for_status()
-
-            message = f"Enabled user: {username.name}"
-            await send_logs(message)
-            logger.info(message)
-        except httpx.HTTPStatusError:
-            message = f"[{response.status_code}] {response.text}"
-            await send_logs(message)
-            logger.error(message)
-        except Exception as error:  # pylint: disable=broad-except
-            message = f"An unexpected error occurred: {error}"
-            await send_logs(message)
-            logger.error(message)
-    logger.info("Enabled all users")
-
-
-
 async def enable_selected_users(
     panel_data: PanelType, inactive_users: set[str]
 ) -> None | ValueError:
@@ -418,19 +300,18 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
     dis_obj = DisabledUsers()
     while True:
         try:
-            # خواندن تنظیمات و زمان لازم برای فعال شدن کاربران
             config_data = await config_manager.read_config()
             time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
+            CHECK_INTERVAL = int(config_data.get("CHECK_INTERVAL"))
 
-            # بررسی کاربران غیرفعال
+
             for username, disabled_time in list(dis_obj.disabled_users.items()):
                 time_elapsed = (datetime.now() - disabled_time).total_seconds()
                 if time_elapsed >= time_to_active_users:
-                    # فعال‌سازی کاربر
                     logger.info("Enabling user: %s", username)
                     await enable_selected_users(panel_data, {username})
-                    await dis_obj.remove_user(username)  # حذف کاربر از لیست غیرفعال
-            await asyncio.sleep(300)  # بررسی هر 5 دقیقه
+                    await dis_obj.remove_user(username)
+            await asyncio.sleep(CHECK_INTERVAL)
 
         except KeyError as error:
             logger.error("Missing key in configuration: %s", error)

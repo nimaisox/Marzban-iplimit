@@ -17,11 +17,10 @@ from utils.get_logs import (
     handle_cancel,
     handle_cancel_all,
 )
-from utils.handel_dis_users import DisabledUsers
+from utils.handel_users import DisabledUsers
 from utils.logs import logger
 from utils.panel_api import (
     enable_dis_user,
-    enable_selected_users,
     get_nodes,
 )
 from utils.read_config import ConfigManager
@@ -33,7 +32,6 @@ parser.add_argument("--version", action="version", version=VERSION)
 args = parser.parse_args()
 
 dis_obj = DisabledUsers()
-
 
 async def initialize_config(config_manager):
     """Load and validate configuration."""
@@ -59,12 +57,6 @@ async def initialize_config(config_manager):
 
 async def run_tasks(panel_data, config_manager):
     """Run all the tasks required for the program."""
-    config_file = await config_manager.read_config(check_required_elements=True)
-    time_to_active_users = int(config_file.get("TIME_TO_ACTIVE_USERS"))
-    expired_users= await dis_obj.get_and_remove_expired_users(duration_seconds=time_to_active_users)
-    if expired_users:
-        await enable_selected_users(panel_data, set(expired_users))
-
     await get_nodes(panel_data)
 
     async with asyncio.TaskGroup() as tg:

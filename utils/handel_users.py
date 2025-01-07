@@ -44,8 +44,6 @@ class DisabledUsers:
             logger.warning("Returning empty set for disabled users.")
             return {}
 
-
-
     async def save_disabled_users(self):
         """
         Saves the disabled users to the JSON file.
@@ -90,19 +88,3 @@ class DisabledUsers:
         Returns a dictionary of all disabled users with their disable times.
         """
         return self.disabled_users
-
-    async def get_and_remove_expired_users(self, duration_seconds: int):
-        """
-        Returns a list of users whose disable time has expired
-        and removes them from the disabled users list.
-        """
-        now = datetime.now()
-        expired_users = [
-            user for user, disabled_time in self.disabled_users.items()
-            if (now - disabled_time).total_seconds() >= duration_seconds
-        ]
-        for user in expired_users:
-            del self.disabled_users[user]
-            DISABLED_USERS.pop(user, None)
-        await self.save_disabled_users()
-        return expired_users
