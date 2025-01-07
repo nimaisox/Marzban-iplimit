@@ -28,21 +28,24 @@ class DisabledUsers:
             if os.path.exists(self.filename):
                 with open(self.filename, "r", encoding="utf-8") as file:
                     data = json.load(file)
-                    return {
-                        user: datetime.fromisoformat(date)
-                        for user, date in data.get("disable_user", {}).items()
-                    }
+                    if isinstance(data, dict) and "disable_user" in data:
+                        return {
+                            user: datetime.fromisoformat(date)
+                            for user, date in data.get("disable_user", {}).items()
+                        }
+                    else:
+                        logger.error("Invalid format in .disable_users.json. Resetting file.")
+                        os.remove(self.filename)  # حذف فایل معیوب
+                        logger.info("Invalid file removed: %s", self.filename)
+                        return {}
             else:
                 return {}
         except Exception as error:  # pylint: disable=broad-except
-            logger.error(error)
-            logger.info("Check the error or delete the file : %s", error)
-            logger.info("Delete the .disable_users.json file? (y/n)")
-            if input().lower() == "y":
-                logger.info("Deleting ...")
-                logger.info("Removing .disable_users.json file")
-                os.remove(".disable_users.json")
+            logger.error("Error loading disabled users: %s", error)
+            os.remove(self.filename)  # حذف فایل در صورت بروز خطا
+            logger.info("Corrupted file removed: %s", self.filename)
             return {}
+
 
     async def save_disabled_users(self):
         """
