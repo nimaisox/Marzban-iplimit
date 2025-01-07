@@ -1,6 +1,6 @@
 """
 This module checks if a user (name and IP address)
-appears more than two times in the ACTIVE_USERS list.
+appears more than two times in the ACTIVE_USERS  list.
 """
 
 import asyncio
