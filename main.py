@@ -1,10 +1,6 @@
-"""
-main.py is the
-main file that run other files and functions to run the program.
-"""
-
 import argparse
 import asyncio
+import signal
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
@@ -21,6 +17,7 @@ from utils.handel_users import DisabledUsers
 from utils.logs import logger
 from utils.panel_api import (
     enable_dis_user,
+    enable_selected_users,
     get_nodes,
 )
 from utils.read_config import ConfigManager
@@ -30,8 +27,6 @@ VERSION = "1.0.0"
 parser = argparse.ArgumentParser(description="Run the program with various options.")
 parser.add_argument("--version", action="version", version=VERSION)
 args = parser.parse_args()
-
-dis_obj = DisabledUsers()
 
 async def initialize_config(config_manager):
     """Load and validate configuration."""
@@ -53,7 +48,6 @@ async def initialize_config(config_manager):
                 "\nRetrying in <b>60 seconds</b>."
             )
             await asyncio.sleep(60)
-
 
 async def run_tasks(panel_data, config_manager):
     """Run all the tasks required for the program."""
@@ -79,6 +73,29 @@ async def run_tasks(panel_data, config_manager):
         tg.create_task(enable_dis_user(panel_data, config_manager), name="enable_dis_user")
         await run_check_users_usage(panel_data, config_manager)
 
+async def handle_disabled_users_on_exit(panel_data):
+    """Handle disabled users during program exit."""
+    logger.info("Handling disabled users during program exit...")
+    try:
+        disabled_users_manager = DisabledUsers()
+        disabled_users = await disabled_users_manager.get_all_users()
+
+        if disabled_users:
+            logger.info("Enabling disabled users during cleanup...")
+            for username in disabled_users.keys():
+                await enable_selected_users(panel_data, {username})
+                await disabled_users_manager.remove_user(username)
+            logger.info("Disabled users have been handled successfully.")
+    except Exception as e:
+        logger.error("Error while handling disabled users during exit: %s", e)
+
+def handle_exit_signal(loop, panel_data):
+    """Handle termination signals to exit immediately."""
+    logger.info("Received exit signal. Starting cleanup...")
+    asyncio.create_task(handle_disabled_users_on_exit(panel_data))  # Schedule cleanup
+    for task in asyncio.all_tasks(loop):
+        task.cancel()  # Cancel all running tasks
+    loop.stop()  # Stop the event loop
 
 async def main():
     """Main function to initialize and run the program."""
@@ -94,21 +111,32 @@ async def main():
         config_file["PANEL_PASSWORD"],
         config_file["PANEL_DOMAIN"],
     )
+
+    # Register signal handlers
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(sig, handle_exit_signal, loop, panel_data)
+
     while True:
         try:
             await run_tasks(panel_data, config_manager)
             await asyncio.sleep(60)
-        except Exception as e: # pylint: disable=broad-except
+        except asyncio.CancelledError:
+            logger.info("Tasks cancelled. Exiting...")
+            break
+        except Exception as e:  # pylint: disable=broad-except
             logger.error("Error during task execution: %s", e)
             await send_logs(f"Unexpected error: <code>{e}</code>")
             await asyncio.sleep(10)
 
-
 if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
     try:
-        asyncio.run(main())
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
         logger.critical("Unhandled exception in main loop: %s", e)
         raise
+    finally:
+        loop.close()

@@ -63,7 +63,6 @@ async def check_ip_used() -> dict:
 
     return all_users_log
 
-
 async def check_users_usage(panel_data: PanelType, config_manager: ConfigManager):
     """
     Checks the usage of active users.
@@ -98,7 +97,6 @@ async def check_users_usage(panel_data: PanelType, config_manager: ConfigManager
         logger.error("Configuration value error: %s", error)
     except Exception as error:  # pylint: disable=broad-except
         logger.error("Unexpected error in check_users_usage: %s", error)
-
 
 async def run_check_users_usage(panel_data: PanelType, config_manager: ConfigManager) -> None:
     """

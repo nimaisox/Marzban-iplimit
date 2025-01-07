@@ -129,7 +129,6 @@ async def check_ip(ip_address: str, config_manager: ConfigManager) -> None | str
                 resp = await client.get(url)
                 resp.raise_for_status()
 
-
             if "ipapi.co" in endpoint:
                 country = resp.text.strip()
                 if not country or len(country) != 2:
@@ -163,8 +162,6 @@ async def check_ip(ip_address: str, config_manager: ConfigManager) -> None | str
     logger.error("All API endpoints failed for IP: %s", ip_address)
     return None
 
-
-
 async def is_valid_ip(ip: str) -> bool:
     """
     Check if a string is a valid IP address.
@@ -183,11 +180,9 @@ async def is_valid_ip(ip: str) -> bool:
     except ValueError:
         return False
 
-
 IP_V6_REGEX = re.compile(r"\[([0-9a-fA-F:]+)\]:\d+\s+accepted")
 IP_V4_REGEX = re.compile(r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})")
 EMAIL_REGEX = re.compile(r"email:\s*([A-Za-z0-9._%+-]+)")
-
 
 async def parse_logs(log: str, config_manager: ConfigManager) -> dict[str, UserType]:
     """

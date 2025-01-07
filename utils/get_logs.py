@@ -111,7 +111,6 @@ async def get_panel_logs(panel_data: PanelType) -> None:
                               traceback.format_exc())
                 break
 
-
 async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
     """
     Establish a WebSocket connection to a specific node and retrieve logs.
@@ -186,7 +185,6 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                 )
                 break
 
-
 async def handle_cancel(panel_data: PanelType, tasks: list[Task]) -> None:
     """
     An asynchronous coroutine that cancels all tasks in the given list.
@@ -214,7 +212,6 @@ async def handle_cancel(panel_data: PanelType, tasks: list[Task]) -> None:
                     task_node_mapping.pop(task)
         await asyncio.sleep(20)
 
-
 async def handle_cancel_all(tasks: list[Task], panel_data: PanelType) -> None:
     """
     An asynchronous coroutine that cancels All tasks in the given list.
@@ -239,7 +236,6 @@ async def handle_cancel_all(tasks: list[Task], panel_data: PanelType) -> None:
                     if node.status == "connected":
                         await create_node_task(panel_data, tg, node)
                         await asyncio.sleep(3)
-
 
 async def check_and_add_new_nodes(panel_data: PanelType, tg: asyncio.TaskGroup) -> None:
     """
@@ -291,8 +287,6 @@ async def create_panel_task(panel_data: PanelType, tg: asyncio.TaskGroup) -> Non
         logger.info("Task-panel successfully created and added to TASKS.")
     except Exception as e: # pylint: disable=broad-except
         logger.error("Failed to create Task-panel: %s", e)
-
-
 
 async def create_node_task(
     panel_data: PanelType, tg: asyncio.TaskGroup, node: NodeType

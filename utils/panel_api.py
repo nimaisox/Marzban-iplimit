@@ -10,7 +10,7 @@ import traceback
 from datetime import datetime
 from telegram_bot.send_message import send_logs
 
-from utils.handel_dis_users import DisabledUsers
+from utils.handel_users import DisabledUsers
 from utils.logs import logger
 from utils.read_config import ConfigManager
 from utils.types import NodeType, PanelType, UserType

@@ -10,7 +10,6 @@ from utils.logs import logger
 
 DISABLED_USERS = {}
 
-
 class DisabledUsers:
     """
     A class used to represent the Disabled Users.
