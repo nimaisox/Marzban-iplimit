@@ -5,10 +5,10 @@ which provides methods for managing disabled users
 
 import json
 import os
-
+from datetime import datetime
 from utils.logs import logger
 
-DISABLED_USERS = set()
+DISABLED_USERS = {}
 
 
 class DisabledUsers:
@@ -28,42 +28,79 @@ class DisabledUsers:
             if os.path.exists(self.filename):
                 with open(self.filename, "r", encoding="utf-8") as file:
                     data = json.load(file)
-                    return set(data.get("disable_user", []))
+                    return {
+                        user: datetime.fromisoformat(date)
+                        for user, date in data.get("disable_user", {}).items()
+                    }
             else:
-                return set()
+                return {}
         except Exception as error:  # pylint: disable=broad-except
             logger.error(error)
             logger.info("Check the error or delete the file : %s", error)
             logger.info("Delete the .disable_users.json file? (y/n)")
             if input().lower() == "y":
                 logger.info("Deleting ...")
-                logger.info("remove .disable_users.json file")
+                logger.info("Removing .disable_users.json file")
                 os.remove(".disable_users.json")
-            return set()
+            return {}
 
     async def save_disabled_users(self):
         """
         Saves the disabled users to the JSON file.
         """
         with open(self.filename, "w", encoding="utf-8") as file:
-            json.dump({"disable_user": list(self.disabled_users)}, file)
+            json.dump(
+                {
+                    "disable_user": {
+                        user: date.isoformat()
+                        for user, date in self.disabled_users.items()
+                    }
+                },
+                file,
+            )
 
     async def add_user(self, username: str):
         """
-        Adds a user to the set of disabled users
-        and saves the updated set to the JSON file.
+        Adds a user to the dictionary of disabled users
+        with the current timestamp and saves the updated dictionary
+        to the JSON file.
         """
-        DISABLED_USERS.add(username)
-        self.disabled_users.add(username)
+        current_time = datetime.now()
+        DISABLED_USERS[username] = current_time
+        self.disabled_users[username] = current_time
         await self.save_disabled_users()
 
-    async def read_and_clear_users(self):
+    async def remove_user(self, username: str):
         """
-        Returns a list of disabled users, clears the set of disabled users
-        and saves the empty set to the JSON file.
+        Removes a specific user from the dictionary of disabled users
+        and saves the updated dictionary to the JSON file.
         """
-        disabled_users = list(self.disabled_users)
-        self.disabled_users.clear()
-        DISABLED_USERS.clear()
+        if username in self.disabled_users:
+            del self.disabled_users[username]
+            DISABLED_USERS.pop(username, None)
+            await self.save_disabled_users()
+            logger.info("User %s has been removed from disabled users.", username)
+        else:
+            logger.warning("User %s is not in the disabled users list.", username)
+
+    async def get_all_users(self):
+        """
+        Returns a dictionary of all disabled users with their disable times.
+        """
+        return self.disabled_users
+
+    async def get_and_remove_expired_users(self, duration_seconds: int):
+        """
+        Returns a list of users whose disable time has expired
+        and removes them from the disabled users list.
+        """
+        now = datetime.now()
+        expired_users = [
+            user for user, disabled_time in self.disabled_users.items()
+            if (now - disabled_time).total_seconds() >= duration_seconds
+        ]
+        for user in expired_users:
+            del self.disabled_users[user]
+            DISABLED_USERS.pop(user, None)
         await self.save_disabled_users()
-        return set(disabled_users)
+        return expired_users

@@ -68,8 +68,10 @@ async def main():
         config_file["PANEL_PASSWORD"],
         config_file["PANEL_DOMAIN"],
     )
-    dis_users = await dis_obj.read_and_clear_users()
-    await enable_selected_users(panel_data, dis_users)
+    time_to_active_users = int(config_file.get("TIME_TO_ACTIVE_USERS"))
+    expired_users= await dis_obj.get_and_remove_expired_users(duration_seconds=time_to_active_users)
+    if expired_users:
+        await enable_selected_users(panel_data, set(expired_users))
     await get_nodes(panel_data)
     async with asyncio.TaskGroup() as tg:
         logger.info("Start Create Panel Task Test: ")

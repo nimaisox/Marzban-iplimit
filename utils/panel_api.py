@@ -7,9 +7,10 @@ import random
 import sys
 import traceback
 
+from datetime import datetime
 from telegram_bot.send_message import send_logs
 
-from utils.handel_dis_users import DISABLED_USERS, DisabledUsers
+from utils.handel_dis_users import DisabledUsers
 from utils.logs import logger
 from utils.read_config import ConfigManager
 from utils.types import NodeType, PanelType, UserType
@@ -417,20 +418,24 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
     dis_obj = DisabledUsers()
     while True:
         try:
+            # خواندن تنظیمات و زمان لازم برای فعال شدن کاربران
             config_data = await config_manager.read_config()
-            time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS", 60))
+            time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
 
-            await asyncio.sleep(time_to_active_users)
-
-            if DISABLED_USERS:
-                logger.info("Enabling disabled users: %s", DISABLED_USERS)
-                await enable_selected_users(panel_data, DISABLED_USERS)
-                await dis_obj.read_and_clear_users()
+            # بررسی کاربران غیرفعال
+            for username, disabled_time in list(dis_obj.disabled_users.items()):
+                time_elapsed = (datetime.now() - disabled_time).total_seconds()
+                if time_elapsed >= time_to_active_users:
+                    # فعال‌سازی کاربر
+                    logger.info("Enabling user: %s", username)
+                    await enable_selected_users(panel_data, {username})
+                    await dis_obj.remove_user(username)  # حذف کاربر از لیست غیرفعال
+            await asyncio.sleep(300)  # بررسی هر 5 دقیقه
 
         except KeyError as error:
             logger.error("Missing key in configuration: %s", error)
         except ValueError as error:
             logger.error("Invalid value in configuration: %s", error)
-        except Exception as error: # pylint: disable=broad-except
+        except Exception as error:  # pylint: disable=broad-except
             logger.error("Unexpected error in enable_dis_user: %s", error)
             await asyncio.sleep(60)
