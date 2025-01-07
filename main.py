@@ -91,14 +91,24 @@ async def handle_disabled_users_on_exit(panel_data):
 
 def handle_exit_signal(loop, panel_data):
     """Handle termination signals to exit immediately."""
-    logger.info("Received exit signal. Starting cleanup...")
-    # Schedule the cleanup and ensure loop stops immediately
-    asyncio.create_task(handle_disabled_users_on_exit(panel_data))
-    tasks = [t for t in asyncio.all_tasks() if not t.done()]
-    for task in tasks:
-        task.cancel()  # Cancel all tasks
-    loop.stop()  # Stop the loop immediately
-    logger.info("Event loop stopped.")
+    logger.info("Received exit signal. Cleaning up...")
+    try:
+        # Cancel all running tasks
+        tasks = [task for task in asyncio.all_tasks(loop) if not task.done()]
+        for task in tasks:
+            task.cancel()
+
+        # Wait for all tasks to finish
+        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+
+        # Cleanup disabled users
+        loop.run_until_complete(handle_disabled_users_on_exit(panel_data))
+    except Exception as e:
+        logger.error("Error during cleanup: %s", e)
+    finally:
+        loop.stop()  # Stop the loop immediately
+        logger.info("Event loop stopped.")
+        sys.exit(0)  # Exit the program
 
 async def main():
     """Main function to initialize and run the program."""
