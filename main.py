@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import signal
+import sys
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
