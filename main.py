@@ -98,15 +98,13 @@ def handle_exit_signal(loop, panel_data):
 async def final_cleanup_and_exit(loop, panel_data):
     """Run final cleanup and exit the program."""
     try:
-        # Perform essential cleanup
         await handle_disabled_users_on_exit(panel_data)
     except Exception as e:
         logger.error(f"Error during cleanup: {e}")
     finally:
         logger.info("Cleanup completed. Exiting now...")
-        # Stop the loop immediately
         loop.stop()
-        sys.exit(0)  # Exit immediately after stopping the loop
+        sys.exit(0)
 
 async def main():
     """Main function to initialize and run the program."""
@@ -123,7 +121,6 @@ async def main():
         config_file["PANEL_DOMAIN"],
     )
 
-    # Register signal handlers
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, handle_exit_signal, loop, panel_data)
@@ -145,7 +142,7 @@ if __name__ == "__main__":
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
-        sys.exit(0)  # Exit immediately if KeyboardInterrupt occurs
+        sys.exit(0)
     except Exception as e:
         logger.critical(f"Unhandled exception: {e}")
-        sys.exit(1)  # Exit with error status
+        sys.exit(1)
