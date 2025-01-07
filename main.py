@@ -92,10 +92,13 @@ async def handle_disabled_users_on_exit(panel_data):
 def handle_exit_signal(loop, panel_data):
     """Handle termination signals to exit immediately."""
     logger.info("Received exit signal. Starting cleanup...")
-    asyncio.create_task(handle_disabled_users_on_exit(panel_data))  # Schedule cleanup
-    for task in asyncio.all_tasks(loop):
-        task.cancel()  # Cancel all running tasks
-    loop.stop()  # Stop the event loop
+    # Schedule the cleanup and ensure loop stops immediately
+    asyncio.create_task(handle_disabled_users_on_exit(panel_data))
+    tasks = [t for t in asyncio.all_tasks() if not t.done()]
+    for task in tasks:
+        task.cancel()  # Cancel all tasks
+    loop.stop()  # Stop the loop immediately
+    logger.info("Event loop stopped.")
 
 async def main():
     """Main function to initialize and run the program."""
@@ -117,21 +120,19 @@ async def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, handle_exit_signal, loop, panel_data)
 
-    while True:
-        try:
+    try:
+        while True:
             await run_tasks(panel_data, config_manager)
             await asyncio.sleep(60)
-        except asyncio.CancelledError:
-            logger.info("Tasks cancelled. Exiting...")
-            break
-        except Exception as e:  # pylint: disable=broad-except
-            logger.error("Error during task execution: %s", e)
-            await send_logs(f"Unexpected error: <code>{e}</code>")
-            await asyncio.sleep(10)
+    except asyncio.CancelledError:
+        logger.info("Tasks cancelled. Exiting...")
+    except Exception as e:
+        logger.error("Error during task execution: %s", e)
+        await send_logs(f"Unexpected error: <code>{e}</code>")
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())  # استفاده از asyncio.run برای راه‌اندازی main
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
     except Exception as e:  # pylint: disable=broad-except
