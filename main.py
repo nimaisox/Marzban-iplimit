@@ -130,13 +130,10 @@ async def main():
             await asyncio.sleep(10)
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(main())
+        asyncio.run(main())  # استفاده از asyncio.run برای راه‌اندازی main
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
     except Exception as e:  # pylint: disable=broad-except
         logger.critical("Unhandled exception in main loop: %s", e)
         raise
-    finally:
-        loop.close()
