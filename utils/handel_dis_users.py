@@ -34,7 +34,7 @@ class DisabledUsers:
                             for user, date in data.get("disable_user", {}).items()
                         }
                     else:
-                        logger.warning("Invalid format or empty .disable_users.json. Returning empty set.")
+                        logger.warning("Invalid or empty .disable_users.json. Returning empty set.")
                         return {}
             else:
                 logger.info("File .disable_users.json does not exist. Returning empty set.")
