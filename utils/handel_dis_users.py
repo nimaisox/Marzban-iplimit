@@ -34,17 +34,16 @@ class DisabledUsers:
                             for user, date in data.get("disable_user", {}).items()
                         }
                     else:
-                        logger.error("Invalid format in .disable_users.json. Resetting file.")
-                        os.remove(self.filename)  # حذف فایل معیوب
-                        logger.info("Invalid file removed: %s", self.filename)
+                        logger.warning("Invalid format or empty .disable_users.json. Returning empty set.")
                         return {}
             else:
+                logger.info("File .disable_users.json does not exist. Returning empty set.")
                 return {}
         except Exception as error:  # pylint: disable=broad-except
             logger.error("Error loading disabled users: %s", error)
-            os.remove(self.filename)  # حذف فایل در صورت بروز خطا
-            logger.info("Corrupted file removed: %s", self.filename)
+            logger.warning("Returning empty set for disabled users.")
             return {}
+
 
 
     async def save_disabled_users(self):
