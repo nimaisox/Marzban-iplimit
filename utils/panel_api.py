@@ -304,21 +304,21 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
 
             # Read configuration
             config_data = await config_manager.read_config()
-            logger.debug("Configuration data: %s", config_data)
+            logger.info("Configuration data: %s", config_data)
 
             # Get configuration values
             time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
             check_interval = int(config_data.get("CHECK_INTERVAL"))
-            logger.debug("Time to active users: %s, Check interval: %s", time_to_active_users, check_interval)
+            logger.info("Time to active users: %s, Check interval: %s", time_to_active_users, check_interval)
 
             # Process disabled users
             if not dis_obj.disabled_users:
                 logger.info("No disabled users found.")
 
             for username, disabled_time in list(dis_obj.disabled_users.items()):
-                logger.debug("Checking user: %s, Disabled time: %s", username, disabled_time)
+                logger.info("Checking user: %s, Disabled time: %s", username, disabled_time)
                 time_elapsed = (datetime.now() - disabled_time).total_seconds()
-                logger.debug("Time elapsed for user %s: %s seconds", username, time_elapsed)
+                logger.info("Time elapsed for user %s: %s seconds", username, time_elapsed)
 
                 if time_elapsed >= time_to_active_users:
                     logger.info("Enabling user: %s", username)
