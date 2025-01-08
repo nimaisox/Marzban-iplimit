@@ -301,18 +301,32 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
     while True:
         try:
             logger.info("Running enable_dis_user loop...")  # Log to confirm loop is running
+
+            # Read configuration
             config_data = await config_manager.read_config()
+            logger.debug("Configuration data: %s", config_data)
+
+            # Get configuration values
             time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
-            check_interval = int(config_data.get("CHECK_INTERVAL"))  # Changed to lowercase
+            check_interval = int(config_data.get("CHECK_INTERVAL"))
+            logger.debug("Time to active users: %s, Check interval: %s", time_to_active_users, check_interval)
+
+            # Process disabled users
+            if not dis_obj.disabled_users:
+                logger.info("No disabled users found.")
 
             for username, disabled_time in list(dis_obj.disabled_users.items()):
+                logger.debug("Checking user: %s, Disabled time: %s", username, disabled_time)
                 time_elapsed = (datetime.now() - disabled_time).total_seconds()
+                logger.debug("Time elapsed for user %s: %s seconds", username, time_elapsed)
+
                 if time_elapsed >= time_to_active_users:
                     logger.info("Enabling user: %s", username)
                     await enable_selected_users(panel_data, {username})
                     await dis_obj.remove_user(username)
-            
-            await asyncio.sleep(check_interval)  # Updated to use lowercase
+                    logger.info("User %s has been re-enabled and removed from the disabled list.", username)
+
+            await asyncio.sleep(check_interval)
 
         except KeyError as error:
             logger.error("Missing key in configuration: %s", error)

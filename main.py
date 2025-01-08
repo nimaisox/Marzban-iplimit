@@ -83,10 +83,14 @@ async def handle_disabled_users_on_exit(panel_data):
 
         if disabled_users:
             logger.info("Enabling disabled users during cleanup...")
-            for username in disabled_users.keys():
-                await enable_selected_users(panel_data, {username})
-                await disabled_users_manager.remove_user(username)
-            logger.info("Disabled users have been handled successfully.")
+            for username in list(disabled_users.keys()):  # Use a copy of the keys
+                try:
+                    await enable_selected_users(panel_data, {username})
+                    await disabled_users_manager.remove_user(username)
+                    logger.info("Enabled user during cleanup: %s", username)
+                except Exception as e:
+                    logger.error("Failed to enable user %s during cleanup: %s", username, e)
+            logger.info("All disabled users have been handled successfully.")
     except Exception as e:
         logger.error("Error while handling disabled users during exit: %s", e)
 
