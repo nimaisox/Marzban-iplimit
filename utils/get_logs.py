@@ -93,7 +93,7 @@ async def get_panel_logs(panel_data: PanelType) -> None:
 
         while True:
             try:
-                async with websockets.connect(url, ssl=current_ssl_ctx) as ws:
+                async with websockets.connect(url, ssl=current_ssl_ctx, ping_interval=10) as ws:
                     log_message = f"Connected to panel logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -105,11 +105,13 @@ async def get_panel_logs(panel_data: PanelType) -> None:
                         await parse_logs(str(new_log), config_manager)
             except ConnectionClosedError as error:
                 logger.error("Connection closed unexpectedly for %s: %s", scheme, error)
-                break
+                await asyncio.sleep(20)
+                continue
             except Exception as error:  # pylint: disable=broad-except
                 logger.error("Unexpected error with %s: %s\n%s", scheme, error,
                               traceback.format_exc())
-                break
+                await asyncio.sleep(20)
+                continue
 
 async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
     """
