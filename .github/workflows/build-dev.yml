@@ -1,9 +1,6 @@
-name: Build and Upload V2IpLimit
+name: Build and Upload
 
-on:
-  push:
-    paths:
-      - "v2iplimit.py"
+on: [push]
 
 jobs:
   build:
