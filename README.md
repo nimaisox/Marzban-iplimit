@@ -19,7 +19,7 @@ Supports both IPv4 and IPv6 And Marzban-node
 You can install Marzban-iplimit by running the following command in your terminal:
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh)
+sudo bash <(curl -sSL https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh)
 ```
 
 And after that you need input your panel information and other settings:
