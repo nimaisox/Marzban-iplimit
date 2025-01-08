@@ -1,0 +1,90 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+        - '*'
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: x86_64
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+          cache-dependency-path: |
+            **/requirements*.txt
+
+      - name: Install your Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build Executable with Nuitka
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: main.py
+          mode: onefile
+          include-package: "websockets,logging"
+          include-module: "_bisect,_json"
+          python-flag: "-OO"
+          output-dir: .
+          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          path: |
+            ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+
+  release:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts (x86_64)
+        uses: actions/download-artifact@v4
+        with:
+          name: marzban_iplimit_x86_64_linux
+          path: ./artifacts/x86_64_linux
+
+      - name: Download artifacts (ARM64)
+        uses: actions/download-artifact@v4
+        with:
+          name: marzban_iplimit_arm64_linux
+          path: ./artifacts/arm64_linux
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Renaming and uploading x86_64 files..."
+          mv ./artifacts/x86_64_linux/marzban_iplimit_x86_64_linux.bin ./artifacts/x86_64_linux/marzban_iplimit_amd64_linux.bin
+          ls -al ./artifacts/x86_64_linux
+          gh release upload ${{ github.ref_name }} ./artifacts/x86_64_linux/marzban_iplimit_amd64_linux.bin
+          
+          echo "Uploading ARM64 files..."
+          ls -al ./artifacts/arm64_linux
+          gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban_iplimit_arm64_linux.bin
