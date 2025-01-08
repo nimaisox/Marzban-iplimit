@@ -3,20 +3,70 @@ name: Build and Upload
 on: [push]
 
 jobs:
-  build:
+  build-windows:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [windows-latest]
+        architecture: [x86_64, arm64]  # اضافه کردن ARM64 به‌عنوان معماری برای ویندوز
     runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check-out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            **/requirements*.txt
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build Executable with Nuitka (Windows Specific)
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: main.py
+          mode: onefile
+          include-package: "websockets,logging"
+          python-flag: "-OO"
+          follow-imports: true
+          include-plugin-directory: "utils"
+          output-dir: .
+          output-file: marzban_iplimit_${{ matrix.architecture }}_${{ matrix.os }}.exe
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}_${{ matrix.architecture }}_build
+          path: |
+            build/*.exe
+
+
+  build-linux:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: x86_64
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: arm64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Check-out repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
           cache: "pip"
           cache-dependency-path: |
             **/requirements*.txt
@@ -31,13 +81,15 @@ jobs:
           nuitka-version: main
           script-name: main.py
           mode: onefile
-          include-package: "websockets,httpx"
+          include-package: "websockets,logging"
+          include-module: "_bisect,_json"
           python-flag: "-OO"
+          output-dir: .
+          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
 
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}_amd64_build
+          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
           path: |
-            build/*.bin
-            build/*.exe
+            ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+
