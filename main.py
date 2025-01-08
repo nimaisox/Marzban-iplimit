@@ -1,3 +1,7 @@
+"""
+main.py is the
+main file that run other files and functions to run the program.
+"""
 import argparse
 import asyncio
 import signal
@@ -83,31 +87,31 @@ async def handle_disabled_users_on_exit(panel_data):
 
         if disabled_users:
             logger.info("Enabling disabled users during cleanup...")
-            for username in list(disabled_users.keys()):  # Use a copy of the keys
+            for username in list(disabled_users.keys()):
                 try:
                     await enable_selected_users(panel_data, {username})
                     await disabled_users_manager.remove_user(username)
                     logger.info("Enabled user during cleanup: %s", username)
-                except Exception as e:
+                except Exception as e: # pylint: disable=broad-except
                     logger.error("Failed to enable user %s during cleanup: %s", username, e)
             logger.info("All disabled users have been handled successfully.")
-    except Exception as e:
+    except Exception as e: # pylint: disable=broad-except
         logger.error("Error while handling disabled users during exit: %s", e)
 
-def handle_exit_signal(loop, panel_data):
+def handle_exit_signal(event_loop, panel_data):
     """Handle termination signals and exit immediately."""
     logger.info("Received termination signal. Executing cleanup...")
-    asyncio.create_task(final_cleanup_and_exit(loop, panel_data))
+    asyncio.create_task(final_cleanup_and_exit(event_loop, panel_data))
 
-async def final_cleanup_and_exit(loop, panel_data):
+async def final_cleanup_and_exit(event_loop, panel_data):
     """Run final cleanup and exit the program."""
     try:
         await handle_disabled_users_on_exit(panel_data)
-    except Exception as e:
-        logger.error(f"Error during cleanup: {e}")
+    except Exception as e: # pylint: disable=broad-except
+        logger.error("Error during cleanup: %s",e)
     finally:
         logger.info("Cleanup completed. Exiting now...")
-        loop.stop()
+        event_loop.stop()
         sys.exit(0)
 
 async def main():
@@ -135,18 +139,18 @@ async def main():
             await asyncio.sleep(60)
     except asyncio.CancelledError:
         logger.info("Tasks cancelled. Exiting...")
-    except Exception as e:
-        logger.error(f"Error during task execution: {e}")
+    except Exception as e: # pylint: disable=broad-except
+        logger.error("Error during task execution: %s",e)
         await send_logs(f"Unexpected error: <code>{e}</code>")
 
 if __name__ == "__main__":
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(main())
+        main_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(main_loop)
+        main_loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         sys.exit(0)
-    except Exception as e:
-        logger.critical(f"Unhandled exception: {e}")
+    except Exception as e: # pylint: disable=broad-except
+        logger.critical("Unhandled exception: %s",e)
         sys.exit(1)
