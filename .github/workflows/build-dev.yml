@@ -1,4 +1,4 @@
-name: Python to Executable
+name: Build-Dev and Upload Marzban iplimit
 
 on: [push]
 
@@ -7,49 +7,74 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
-            ext: exe
-          - os: ubuntu-latest
-            ext: bin
-
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: x86_64
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: arm64
+          - os: windows-2022
+            os_name: windows
+            arch: x86_64
     runs-on: ${{ matrix.os }}
 
     steps:
-      # Step 1: Check out repository
       - name: Check-out repository
         uses: actions/checkout@v4
 
-      # Step 2: Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-          architecture: "x64"
+          python-version: "3.13"
           cache: "pip"
           cache-dependency-path: |
             **/requirements*.txt
 
-      # Step 3: Install dependencies
-      - name: Install Dependencies
+      - name: Install your Dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 4: Build executable
-      - name: Build Executable
+      - name: Build Executable with Nuitka
         uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
           script-name: main.py
-          mode: standalone
-          output-file: marzban_iplimit_${{ matrix.os }}.${{ matrix.ext }}
+          mode: onefile
+          include-package: "websockets,logging"
+          include-module: "_bisect,_json"
           python-flag: "-OO"
+          output-dir: .
+          output-file: |
+            ${{ (matrix.os == 'windows-2022' && 'marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.exe') || 'marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin' }}
 
-      # Step 5: Upload artifacts
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: Executable-${{ matrix.os }}
-          path: build/main.dist/marzban_iplimit_${{ matrix.os }}.${{ matrix.ext }}
-          include-hidden-files: true
-    
+          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          path: |
+            ${{ (matrix.os == 'windows-2022' && './marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.exe') || './marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin' }}
+
+  download-and-use:
+    needs: [build]
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: x86_64
+          - os: ubuntu-20.04
+            os_name: linux
+            arch: arm64
+          - os: windows-2022
+            os_name: windows
+            arch: x86_64
+    steps:
+      - name: Download Built Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          path: ./downloaded
+
+      - name: Check File
+        run: |
+          ls -l ./downloaded
