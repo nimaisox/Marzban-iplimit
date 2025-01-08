@@ -1,4 +1,4 @@
-name: Pylint
+name: Check Code Optimization
 
 on: [push]
 
