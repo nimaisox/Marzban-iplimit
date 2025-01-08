@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import signal
 import sys
+import traceback
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
@@ -152,5 +153,6 @@ if __name__ == "__main__":
         logger.info("Program interrupted by user. Exiting gracefully.")
         sys.exit(0)
     except Exception as e: # pylint: disable=broad-except
-        logger.critical("Unhandled exception: %s",e)
+        logger.error("Unhandled exception: %s",e)
+        logger.error(traceback.format_exc())
         sys.exit(1)

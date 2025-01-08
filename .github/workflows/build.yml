@@ -30,7 +30,7 @@ jobs:
           nuitka-version: main
           script-name: main.py
           mode: onefile
-          include-package: "websockets,logging"
+          include-package: "websockets,logging,httpx[socks,http2],python-telegram-bot"
           python-flag: "-OO"
 
       - name: Upload Artifacts
