@@ -31,7 +31,6 @@ jobs:
           script-name: main.py
           mode: onefile
           include-package: "websockets,logging"
-          include-module: "_bisect,_json"
           python-flag: "-OO"
 
       - name: Upload Artifacts

@@ -99,7 +99,7 @@ sudo apt install build-essential
 ```
 
 Next, install the necessary dependencies:<br>
-`pip install -r build_requirements.txt`<br>
+`pip install -r requirements.txt`<br>
 And at the end you build it with [nuitka](https://nuitka.net/)<br>
 
 ```bash
