@@ -50,6 +50,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Executable-${{ matrix.os }}
-          path: |
-            ./marzban_iplimit_${{ matrix.os }}.${{ matrix.ext }}
+          path: build/main.dist/marzban_iplimit_${{ matrix.os }}.${{ matrix.ext }}
           include-hidden-files: true
+    
