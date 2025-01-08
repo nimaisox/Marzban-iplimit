@@ -149,7 +149,7 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
 
         while True:
             try:
-                async with websockets.connect(url, ssl=ssl_ctx) as ws:
+                async with websockets.connect(url, ssl=ssl_ctx, ping_interval=10) as ws:
                     log_message = f"Connected to node {node.node_id} logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -167,7 +167,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                     scheme,
                     error,
                 )
-                break
+                await asyncio.sleep(20)
+                continue
             except ssl.SSLError as error:
                 logger.error(
                     "SSL error for node [ID: %s, Name: %s] using %s: %s",
@@ -176,7 +177,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                     scheme,
                     error,
                 )
-                break
+                await asyncio.sleep(20)
+                continue
             except Exception as error:  # pylint: disable=broad-except
                 logger.error(
                     "Unexpected error for node [ID: %s, Name: %s] using %s: %s",
@@ -185,7 +187,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                     scheme,
                     error,
                 )
-                break
+                await asyncio.sleep(20)
+                continue
 
 async def handle_cancel(panel_data: PanelType, tasks: list[Task]) -> None:
     """
