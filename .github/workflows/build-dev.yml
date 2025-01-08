@@ -1,106 +1,55 @@
-name: Build-Dev and Upload Marzban iplimit
+name: Python to Executable
 
 on: [push]
 
 jobs:
-  check-pylint:
-    runs-on: [ubuntu-20.04]
-    strategy:
-      matrix: 
-        python-version: ["3.11", "3.12", "3.13"]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pylint==3.3.3
-      - name: Analyzing the code with pylint
-        run: |
-          pylint $(git ls-files '*.py')
-
   build:
-    needs: [check-pylint]
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
-            os_name: linux
-            arch: x86_64
-            file_ext: bin
-          - os: ubuntu-20.04
-            os_name: linux
-            arch: arm64
-            file_ext: bin
           - os: windows-latest
-            os_name: windows
-            arch: x86_64
-            file_ext: exe
+            ext: exe
+          - os: ubuntu-latest
+            ext: bin
+
     runs-on: ${{ matrix.os }}
 
     steps:
+      # Step 1: Check out repository
       - name: Check-out repository
         uses: actions/checkout@v4
 
+      # Step 2: Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
+          architecture: "x64"
           cache: "pip"
           cache-dependency-path: |
             **/requirements*.txt
 
-      - name: Install your Dependencies
+      # Step 3: Install dependencies
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build Executable with Nuitka
+      # Step 4: Build executable
+      - name: Build Executable
         uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
           script-name: main.py
-          mode: onefile
-          include-package: "websockets,logging"
-          include-module: "_bisect,_json"
+          mode: standalone
+          output-file: marzban_iplimit_${{ matrix.os }}.${{ matrix.ext }}
           python-flag: "-OO"
-          output-dir: .
-          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.${{ matrix.file_ext }}
 
-      - uses: actions/upload-artifact@v4
+      # Step 5: Upload artifacts
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          name: Executable-${{ matrix.os }}
           path: |
-            ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.${{ matrix.file_ext }}
-
-  download-and-use:
-    needs: [build]
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-20.04
-            os_name: linux
-            arch: x86_64
-            file_ext: bin
-          - os: ubuntu-20.04
-            os_name: linux
-            arch: arm64
-            file_ext: bin
-          - os: windows-latest
-            os_name: windows
-            arch: x86_64
-            file_ext: exe
-    steps:
-      - name: Download Built Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
-          path: ./downloaded
-
-      - name: Check File
-        run: |
-          ls -l ./downloaded
+            ./marzban_iplimit_${{ matrix.os }}.${{ matrix.ext }}
+          include-hidden-files: true
