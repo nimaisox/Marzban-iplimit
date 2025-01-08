@@ -32,7 +32,7 @@ jobs:
           nuitka-version: main
           script-name: main.py
           mode: onefile
-          include-package: "websockets,logging"
+          include-package: "websockets,logging,httpx"
           python-flag: "-OO"
           follow-imports: true
           include-plugin-directory: "utils"
@@ -44,7 +44,7 @@ jobs:
         with:
           name: ${{ runner.os }}_${{ matrix.architecture }}_build
           path: |
-            build/*.exe
+            ./marzban_iplimit_${{ matrix.architecture }}_${{ matrix.os }}.exe
 
 
   build-linux:
