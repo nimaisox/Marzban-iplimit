@@ -311,10 +311,12 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
             check_interval = int(config_data.get("CHECK_INTERVAL"))
             logger.info("Time to active users: %s, Check interval: %s", time_to_active_users, check_interval)
 
-            # Process disabled users
+            # Reload disabled users from file
+            dis_obj.disabled_users = dis_obj.load_disabled_users()
             if not dis_obj.disabled_users:
                 logger.info("No disabled users found.")
 
+            # Process disabled users
             for username, disabled_time in list(dis_obj.disabled_users.items()):
                 logger.info("Checking user: %s, Disabled time: %s", username, disabled_time)
                 time_elapsed = (datetime.now() - disabled_time).total_seconds()
