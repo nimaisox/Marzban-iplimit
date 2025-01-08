@@ -643,6 +643,7 @@ async def setup_panel(update: Update, _context: ContextTypes.DEFAULT_TYPE):
         config["PANEL_DOMAIN"] = domain
         config["PANEL_USERNAME"] = username
         config["PANEL_PASSWORD"] = password
+        config["PROXY_FOR_API"] = None
         await config_manager.update_config(config)
 
         if is_update:
