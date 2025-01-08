@@ -300,10 +300,10 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
     dis_obj = DisabledUsers()
     while True:
         try:
+            logger.info("Running enable_dis_user loop...")  # Log to confirm loop is running
             config_data = await config_manager.read_config()
             time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
-            CHECK_INTERVAL = int(config_data.get("CHECK_INTERVAL"))
-
+            check_interval = int(config_data.get("CHECK_INTERVAL"))  # Changed to lowercase
 
             for username, disabled_time in list(dis_obj.disabled_users.items()):
                 time_elapsed = (datetime.now() - disabled_time).total_seconds()
@@ -311,7 +311,8 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
                     logger.info("Enabling user: %s", username)
                     await enable_selected_users(panel_data, {username})
                     await dis_obj.remove_user(username)
-            await asyncio.sleep(CHECK_INTERVAL)
+            
+            await asyncio.sleep(check_interval)  # Updated to use lowercase
 
         except KeyError as error:
             logger.error("Missing key in configuration: %s", error)

@@ -51,38 +51,26 @@ Marzban-iplimit can be controlled via a Telegram bot. Here are the available com
 
 ## Common Issues and Solutions
 
-1.  **Uninstalling Marzban-iplimit Script**
-
-    - How can I uninstall the Marzban-iplimit script?
-    - Simply Stop the script and then delete the script folder.
-
-2.  **Connections Persisting After Disabling**
+1.  **Connections Persisting After Disabling**
 
     - Users remain connected even after disabling. Why?
     - This issue is related to the xray core. Connections persist until the user manually closes them. So you have to wait a little until all the connections are closed
 
-3.  **Restarting After Changing JSON Config File**
+2.  **Restarting After Changing JSON Config File**
 
     - Is a restart needed after modifying the JSON config file?
     - No, a restart isn't necessary. The program adapts to changes in the JSON file in short time.
 
-4.  **Running Script on Different VPS**
+3.  **IP Detection in Tunnel**
+    - For better IP detection, the script must be installed on the server where the tunneling is configured.
 
-    - Can I run the script on a different VPS?
-    - Absolutely, the script is flexible and works seamlessly on any VPS or even on your local machine.
-
-5.  **Tunneling and User IP Detection**
-
-    - Tunneling returns the tunnel server IP for users. Any solutions?
-    - Tunneling poses challenges. For better IP detection, consider alternative methods 
-
-6.  **I'm using haproxy why I don't have logs**
+4.  **I'm using haproxy why I don't have logs**
 
     - You need to add this to your haproxy config file:
       `option forwardfor`
       And then restart your haproxy service.
 
-7.  **I'm not using tunnel or haproxy or anything else but still I don't have logs**
+5.  **I'm not using tunnel or haproxy or anything else but still I don't have logs**
 
     - you need add this to your xray config file(If it doesn't exist) :
       ```json
@@ -90,6 +78,10 @@ Marzban-iplimit can be controlled via a Telegram bot. Here are the available com
           "loglevel": "info"
       },
       ```
+
+6.  **Active Users Count Returns 0**
+
+    - If the number of active users returns 0, the Xray core needs to be restarted. This issue is related to the Xray core, and you must restart it through the Marzban panel.
 
 If you still have a problem you can open an issue on the [issues page](https://github.com/nimaisox/Marzban-iplimit/issues)<br>
 

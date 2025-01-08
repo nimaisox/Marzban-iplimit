@@ -24,7 +24,7 @@ from utils.panel_api import (
 from utils.read_config import ConfigManager
 from utils.types import PanelType
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 parser = argparse.ArgumentParser(description="Run the program with various options.")
 parser.add_argument("--version", action="version", version=VERSION)
 args = parser.parse_args()
