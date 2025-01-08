@@ -29,10 +29,9 @@ jobs:
         with:
           nuitka-version: main
           script-name: main.py
-          standalone: true
-          onefile: true
-          follow-imports: true
+          mode: onefile
           include-package: "websockets,logging"
+          include-module: "_bisect,_json"
           python-flag: "-OO"
 
       - name: Upload Artifacts
