@@ -25,9 +25,9 @@ To install Marzban iplimit, run the following command in your terminal:
 sudo bash -c "$(curl -sL https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh)"
 ```
 
-After installation, select option 10 to configure the settings. Enter the admin ID, domain, and bot token.
-Ensure the entered values are correct.
-Finally, start the application
+**After installation, select option 10 to configure the settings. Enter the admin ID, domain, and bot token.**
+**Ensure the entered values are correct.**
+**Finally, start the application.**.
 
 ![Example Image](docs/1.png)
 
