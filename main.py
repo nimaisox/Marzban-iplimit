@@ -106,15 +106,18 @@ async def handle_disabled_users_on_exit(panel_data):
 
 async def graceful_shutdown(signal_name, panel_data):
     """Handle graceful shutdown before forcibly exiting."""
-    print(f"Received signal {signal_name}. Shutting down gracefully...")
+    logger.info(f"Received signal {signal_name}. Shutting down gracefully...")
     try:
-        # صبر برای اجرای عملیات خروج
-        await handle_disabled_users_on_exit(panel_data)
+        # ایجاد وظیفه برای اجرای تمیزکاری
+        cleanup_task = asyncio.create_task(handle_disabled_users_on_exit(panel_data))
+        # منتظر تکمیل وظیفه
+        await cleanup_task
     except Exception as e:
-        print(f"Error during shutdown: {e}")
+        logger.error("Error during shutdown: %s", e)
     finally:
-        print("Shutdown complete. Exiting forcefully.")
-        sys.exit(0)
+        logger.info("Shutdown complete. Exiting forcefully.")
+        # حلقه رویداد را متوقف کنید
+        asyncio.get_running_loop().stop()
 
 def setup_signal_handlers(panel_data):
     """Set up signal handlers for cleanup and exit."""
