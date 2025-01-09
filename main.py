@@ -166,18 +166,28 @@ async def main():
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    panel_data = None  # مقدار واقعی panel_data را اینجا قرار دهید
+
     try:
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
-    except Exception as e:  # pylint: disable=broad-except
+        try:
+            # اجرای تمیزکاری
+            loop.run_until_complete(handle_disabled_users_on_exit(panel_data))
+        except Exception as e:
+            logger.error("Error during shutdown: %s", e)
+        finally:
+            logger.info("Shutdown tasks complete.")
+    except Exception as e:
         logger.error("Unhandled exception: %s", e)
         logger.error(traceback.format_exc())
     finally:
-        logger.info("Shutdown complete.")
+        # اطمینان از اتمام تمامی وظایف
         pending = asyncio.all_tasks(loop)
         for task in pending:
             task.cancel()
         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
         loop.close()
+        logger.info("Event loop closed. Exiting program.")
         sys.exit(0)
