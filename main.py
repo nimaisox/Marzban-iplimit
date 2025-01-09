@@ -106,33 +106,29 @@ async def handle_disabled_users_on_exit(panel_data):
 
 async def graceful_shutdown(signal_name, panel_data):
     """Handle graceful shutdown before forcibly exiting."""
-    logger.info(f"Received signal {signal_name}. Shutting down gracefully...")
+    print(f"Received signal {signal_name}. Shutting down gracefully...")
     try:
-        task = asyncio.create_task(handle_disabled_users_on_exit(panel_data))
-        await task  # Wait for the task to complete
+        # صبر برای اجرای عملیات خروج
+        await handle_disabled_users_on_exit(panel_data)
     except Exception as e:
-        logger.error("Error during shutdown: %s", e)
+        print(f"Error during shutdown: {e}")
     finally:
-        logger.info("Exiting forcefully...")
-        sys.exit(1)  # Exit forcefully after the cleanup.
+        print("Shutdown complete. Exiting forcefully.")
+        sys.exit(0)
 
 def setup_signal_handlers(panel_data):
-    """Set up signal handlers to run cleanup and exit."""
+    """Set up signal handlers for cleanup and exit."""
     loop = asyncio.get_event_loop()
-    stop_event = asyncio.Event()
 
     def signal_handler(signal_name):
-        logger.info(f"Signal {signal_name} received. Triggering shutdown...")
+        print(f"Signal {signal_name} received. Triggering shutdown...")
         asyncio.create_task(graceful_shutdown(signal_name, panel_data))
-        stop_event.set()
 
-    if sys.platform != "win32":
+    if sys.platform != "win32":  # فقط برای لینوکس و macOS
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, lambda s=sig: signal_handler(s.name))
     else:
-        logger.warning("Signal handling is limited on Windows. Use Ctrl+C for exit.")
-
-    return stop_event
+        print("Signal handling is limited on Windows. Using KeyboardInterrupt for shutdown.")
 
 async def main():
     """Main program entry point."""
@@ -149,11 +145,9 @@ async def main():
         config_file["PANEL_DOMAIN"],
     )
 
-    stop_event = setup_signal_handlers(panel_data)
-
     try:
         logger.info("Running main tasks. Waiting for shutdown signal...")
-        while not stop_event.is_set():
+        while True:
             await asyncio.gather(
                 run_tasks(panel_data, config_manager),
                 asyncio.sleep(60),  # Prevents 100% CPU usage
