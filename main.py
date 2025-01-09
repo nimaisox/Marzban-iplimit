@@ -115,17 +115,19 @@ async def graceful_shutdown(signal_name, panel_data):
         logger.info("Exiting forcefully...")
         sys.exit(1)  # Exit forcefully after the cleanup.
 
-def setup_signal_handlers(loop, panel_data):
+def setup_signal_handlers(panel_data):
     """Set up signal handlers to run cleanup and exit."""
+    loop = asyncio.get_event_loop()
     stop_event = asyncio.Event()
 
-    def signal_handler(sig):
-        loop.create_task(graceful_shutdown(sig.name, panel_data))
+    def signal_handler(signal_name):
+        logger.info(f"Signal {signal_name} received. Triggering shutdown...")
+        asyncio.create_task(graceful_shutdown(signal_name, panel_data))
         stop_event.set()
 
     if sys.platform != "win32":
         for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda sig=sig: signal_handler(sig))
+            loop.add_signal_handler(sig, lambda s=sig: signal_handler(s.name))
     else:
         logger.warning("Signal handling is limited on Windows. Use Ctrl+C for exit.")
 
@@ -146,19 +148,22 @@ async def main():
         config_file["PANEL_DOMAIN"],
     )
 
-    loop = asyncio.get_running_loop()
-    stop_event = setup_signal_handlers(loop, panel_data)
+    stop_event = setup_signal_handlers(panel_data)
 
     try:
         logger.info("Running main tasks. Waiting for shutdown signal...")
         while not stop_event.is_set():
-            await run_tasks(panel_data, config_manager)
-            await asyncio.sleep(60)
+            await asyncio.gather(
+                run_tasks(panel_data, config_manager),
+                asyncio.sleep(60),  # Prevents 100% CPU usage
+            )
     except asyncio.CancelledError:
         logger.info("Tasks cancelled. Exiting...")
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error during task execution: %s", e)
         await send_logs(f"Unexpected error: <code>{e}</code>")
+    finally:
+        logger.info("Main loop stopped.")
 
 if __name__ == "__main__":
     try:
