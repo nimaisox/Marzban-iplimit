@@ -108,15 +108,12 @@ async def graceful_shutdown(signal_name, panel_data):
     """Handle graceful shutdown before forcibly exiting."""
     logger.info(f"Received signal {signal_name}. Shutting down gracefully...")
     try:
-        # ایجاد وظیفه برای اجرای تمیزکاری
         cleanup_task = asyncio.create_task(handle_disabled_users_on_exit(panel_data))
-        # منتظر تکمیل وظیفه
         await cleanup_task
     except Exception as e:
         logger.error("Error during shutdown: %s", e)
     finally:
         logger.info("Shutdown complete. Exiting forcefully.")
-        # حلقه رویداد را متوقف کنید
         asyncio.get_running_loop().stop()
 
 def setup_signal_handlers(panel_data):
@@ -127,7 +124,7 @@ def setup_signal_handlers(panel_data):
         print(f"Signal {signal_name} received. Triggering shutdown...")
         asyncio.create_task(graceful_shutdown(signal_name, panel_data))
 
-    if sys.platform != "win32":  # فقط برای لینوکس و macOS
+    if sys.platform != "win32":
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, lambda s=sig: signal_handler(s.name))
     else:
@@ -153,7 +150,7 @@ async def main():
         while True:
             await asyncio.gather(
                 run_tasks(panel_data, config_manager),
-                asyncio.sleep(60),  # Prevents 100% CPU usage
+                asyncio.sleep(60),
             )
     except asyncio.CancelledError:
         logger.info("Tasks cancelled. Exiting...")
@@ -169,7 +166,7 @@ if __name__ == "__main__":
     panel_data = None 
 
     try: 
-        panel_dtaa = None  # مقدار واقعی panel_data را اینجا قرار دهید
+        panel_dtaa = None
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
@@ -184,7 +181,6 @@ if __name__ == "__main__":
         logger.error("Unhandled exception: %s", e)
         logger.error(traceback.format_exc())
     finally:
-        # اطمینان از اتمام تمامی وظایف
         pending = asyncio.all_tasks(loop)
         for task in pending:
             task.cancel()
