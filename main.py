@@ -110,7 +110,6 @@ def register_exit_handler(panel_data):
         logger.info("Executing registered atexit handler...")
         asyncio.run(handle_disabled_users_on_exit(panel_data))
 
-    # Register the exit handler
     atexit.register(exit_handler)
 
 async def main():
