@@ -87,20 +87,24 @@ async def handle_disabled_users_on_exit(panel_data):
         disabled_users_manager = DisabledUsers()
         disabled_users = await disabled_users_manager.get_all_users()
 
-        if disabled_users:
-            logger.info("Enabling disabled users during cleanup...")
-            for username in list(disabled_users.keys()):
-                try:
-                    await enable_selected_users(panel_data, {username})
-                    await disabled_users_manager.remove_user(username)
-                    logger.info("Enabled user during cleanup: %s", username)
-                except Exception as e: # pylint: disable=broad-except
-                    logger.error("Failed to enable user %s during cleanup: %s", username, e)
-            logger.info("All disabled users have been handled successfully.")
-    except Exception as e: # pylint: disable=broad-except
+        if not disabled_users:
+            logger.info("No disabled users to handle during exit.")
+            return
+
+        logger.info("Enabling disabled users during cleanup...")
+        for username in list(disabled_users.keys()):
+            try:
+                logger.debug("Processing user: %s", username)
+                await enable_selected_users(panel_data, {username})
+                await disabled_users_manager.remove_user(username)
+                logger.info("Enabled user during cleanup: %s", username)
+            except Exception as e:  # pylint: disable=broad-except
+                logger.error("Failed to enable user %s during cleanup: %s", username, e)
+
+        logger.info("All disabled users have been handled successfully.")
+    except Exception as e:  # pylint: disable=broad-except
         logger.error("Error while handling disabled users during exit: %s", e)
 
-# Global stop event
 stop_event = asyncio.Event()
 
 async def graceful_shutdown(panel_data):
@@ -113,18 +117,18 @@ async def graceful_shutdown(panel_data):
     finally:
         logger.info("Cleanup completed. Exiting...")
         stop_event.set()
+        logger.info("Goodbye! Program has exited successfully.")
 
 def setup_signal_handlers(panel_data):
     """Setup signal handlers for termination signals."""
-    def signal_handler(sig, _):  # Signal handler for UNIX-like systems
+    def signal_handler(sig, _):
         logger.info("Received signal %s. Starting graceful shutdown...",sig)
         asyncio.create_task(graceful_shutdown(panel_data))
 
     if platform.system() != "Windows":
-        signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
-        signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
     else:
-        # For Windows, rely on KeyboardInterrupt
         logger.info("Running on Windows: No native signal handlers needed.")
 
 async def main():
@@ -145,7 +149,7 @@ async def main():
     setup_signal_handlers(panel_data)
 
     try:
-        while not stop_event.is_set():  # Keep running until stop_event is set
+        while not stop_event.is_set():
             await run_tasks(panel_data, config_manager)
             await asyncio.sleep(60)
     except asyncio.CancelledError:

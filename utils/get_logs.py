@@ -78,6 +78,7 @@ async def get_panel_logs(panel_data: PanelType) -> None:
     else:
         message = "Unsupported protocol in panel domain. Ensure it starts with http or https."
         logger.error(message)
+        await send_logs(message)
         raise ValueError(message)
 
     ssl_ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
@@ -134,6 +135,7 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
     else:
         message = "Unsupported protocol in panel domain. Ensure it starts with http or https."
         logger.error(message)
+        await send_logs(message)
         raise ValueError(message)
 
     secure_ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)

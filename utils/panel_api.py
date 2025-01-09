@@ -42,6 +42,9 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
     }
     url = f"{panel_data.panel_domain}/api/admin/token"
 
+    if not url.startswith("http://") and not url.startswith("https://"):
+        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
+
     for attempt in range(20):
         try:
             timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
@@ -97,10 +100,13 @@ async def enable_selected_users(
         "Authorization": f"Bearer {token}",
     }
 
-    url_template = f"{panel_data.panel_domain}/api/user/{{username}}"
+    url = f"{panel_data.panel_domain}/api/user/{{username}}"
+
+    if not url.startswith("http://") and not url.startswith("https://"):
+        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
 
     for username in inactive_users:
-        url = url_template.format(username=username)
+        url = url.format(username=username)
         status = {"status": "active"}
         success = False
         for attempt in range(5):
@@ -173,6 +179,9 @@ async def disable_user(panel_data: PanelType, username: UserType) -> None | Valu
     url = f"{panel_data.panel_domain}/api/user/{username.name}"
     status = {"status": "disabled"}
     success = False
+
+    if not url.startswith("http://") and not url.startswith("https://"):
+        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
 
     for attempt in range(5):
         try:
@@ -256,6 +265,9 @@ async def get_nodes(panel_data: PanelType) -> list[NodeType] | ValueError:
 
     url = f"{panel_data.panel_domain}/api/nodes"
 
+    if not url.startswith("http://") and not url.startswith("https://"):
+        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
+
     for attempt in range(5):
         try:
             timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
@@ -300,24 +312,20 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
     dis_obj = DisabledUsers()
     while True:
         try:
-            logger.info("Running enable_dis_user loop...")  # Log to confirm loop is running
+            logger.info("Running enable_dis_user loop...")
 
-            # Read configuration
             config_data = await config_manager.read_config()
             logger.info("Configuration data: %s", config_data)
 
-            # Get configuration values
             time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
             check_interval = int(config_data.get("CHECK_INTERVAL"))
             logger.info("Time to active users: %s, Check interval: %s",
                          time_to_active_users, check_interval)
 
-            # Reload disabled users from file
             dis_obj.disabled_users = dis_obj.load_disabled_users()
             if not dis_obj.disabled_users:
                 logger.info("No disabled users found.")
 
-            # Process disabled users
             for username, disabled_time in list(dis_obj.disabled_users.items()):
                 logger.info("Checking user: %s, Disabled time: %s", username, disabled_time)
                 time_elapsed = (datetime.now() - disabled_time).total_seconds()
