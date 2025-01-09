@@ -171,8 +171,9 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
-        sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Unhandled exception: %s", e)
         logger.error(traceback.format_exc())
-        sys.exit(1)
+    finally:
+        logger.info("Shutdown complete.")
+        sys.exit(0)
