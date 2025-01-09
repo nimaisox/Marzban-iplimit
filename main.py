@@ -4,7 +4,7 @@ main file that run other files and functions to run the program.
 """
 import argparse
 import asyncio
-import atexit
+import json
 import sys
 import traceback
 
@@ -107,14 +107,6 @@ async def handle_disabled_users_on_exit(panel_data):
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error while handling disabled users during exit: %s", e)
 
-def register_exit_handler(panel_data):
-    """Register atexit handler for cleanup."""
-    def exit_handler():
-        logger.info("Executing registered atexit handler...")
-        asyncio.run(handle_disabled_users_on_exit(panel_data))
-
-    atexit.register(exit_handler)
-
 async def main():
     """Main program entry point."""
     logger.info("Starting Telegram Bot...")
@@ -144,14 +136,34 @@ async def main():
 
 if __name__ == "__main__":
     try:
+        with open("config.json", "r") as config_file:
+            config = json.load(config_file)
+        panel_data = PanelType(
+            config["PANEL_USERNAME"],
+            config["PANEL_PASSWORD"],
+            config["PANEL_DOMAIN"],
+        )
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
+        try:
+            with open("config.json", "r") as config_file:
+                config = json.load(config_file)
+            panel_data = PanelType(
+                config["PANEL_USERNAME"],
+                config["PANEL_PASSWORD"],
+                config["PANEL_DOMAIN"],
+            )
+            asyncio.run(handle_disabled_users_on_exit(panel_data))
+        except Exception as e:
+            logger.error("Error during cleanup: %s", e)
         sys.exit(1)
     except SystemExit:
         logger.info("SystemExit raised. Cleaning up...")
+        asyncio.run(handle_disabled_users_on_exit(panel_data))
         raise
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:
         logger.error("Unhandled exception: %s", e)
+        asyncio.run(handle_disabled_users_on_exit(panel_data))
         logger.error(traceback.format_exc())
         sys.exit(1)
