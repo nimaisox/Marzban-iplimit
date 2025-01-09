@@ -19,13 +19,15 @@ Supports both IPv4 and IPv6 for Marzban-node.
 
 ## **Installation**
 
-To install Marzban-iplimit, run the following command in your terminal:
+To install Marzban iplimit, run the following command in your terminal:
 
 ```bash
 sudo bash -c "$(curl -sL https://raw.githubusercontent.com/nimaisox/Marzban-iplimit/master/marzban_iplimit.sh)"
 ```
 
-After installation, configure the settings. The configuration process will guide you interactively:
+After installation, select option 10 to configure the settings. Enter the admin ID, domain, and bot token.
+Ensure the entered values are correct.
+Finally, start the application
 
 ![Example Image](docs/1.png)
 
