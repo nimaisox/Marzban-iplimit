@@ -33,6 +33,7 @@ jobs:
           script-name: main.py
           mode: onefile
           include-package: "websockets,logging,httpx"
+          include-module: "_bisect,_json"
           python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
