@@ -134,50 +134,36 @@ async def main():
         await send_logs(f"Unexpected error: <code>{e}</code>")
         sys.exit(1)
 
-def load_panel_data():
-    """
-    Load panel data from the configuration file.
-
-    Reads the 'config.json' file, parses its content, 
-    and creates a PanelType object.
-
-    Returns:
-        PanelType: The panel data object with username, password, and domain.
-    """
-    with open("config.json", "r", encoding="utf-8") as config_file:
-        config = json.load(config_file)
-    return PanelType(
-        config["PANEL_USERNAME"],
-        config["PANEL_PASSWORD"],
-        config["PANEL_DOMAIN"]
-    )
-
-def cleanup():
-    """
-    Perform cleanup tasks before exiting the program.
-
-    Loads the panel data and calls the 'handle_disabled_users_on_exit'
-    coroutine to clean up disabled users.
-    """
-    local_panel_data = load_panel_data()
-    asyncio.run(handle_disabled_users_on_exit(local_panel_data))
-
 if __name__ == "__main__":
     try:
-        cleanup()
+        with open("config.json", "r") as config_file2:
+            config2 = json.load(config_file2)
+        panel_data2 = PanelType(
+            config2["PANEL_USERNAME"],
+            config2["PANEL_PASSWORD"],
+            config2["PANEL_DOMAIN"],
+        )
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         try:
-            cleanup()
-        except Exception as e: # pylint: disable=broad-except
+            with open("config.json", "r") as config_file2:
+                config2 = json.load(config_file2)
+            panel_data2 = PanelType(
+                config2["PANEL_USERNAME"],
+                config2["PANEL_PASSWORD"],
+                config2["PANEL_DOMAIN"],
+            )
+            asyncio.run(handle_disabled_users_on_exit(panel_data2))
+        except Exception as e:
             logger.error("Error during cleanup: %s", e)
         sys.exit(1)
     except SystemExit:
         logger.info("SystemExit raised. Cleaning up...")
-        cleanup()
+        asyncio.run(handle_disabled_users_on_exit(panel_data2))
         raise
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:
         logger.error("Unhandled exception: %s", e)
-        cleanup()
+        asyncio.run(handle_disabled_users_on_exit(panel_data2))
         logger.error(traceback.format_exc())
         sys.exit(1)
