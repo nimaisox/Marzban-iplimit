@@ -4,9 +4,9 @@ main file that run other files and functions to run the program.
 """
 import argparse
 import asyncio
-import json
 import sys
 import traceback
+import signal
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
@@ -83,9 +83,6 @@ async def handle_disabled_users_on_exit(panel_data):
     """Handle disabled users during program exit."""
     try:
         logger.info("Handling disabled users during program exit...")
-
-        await asyncio.sleep(1)
-
         disabled_users_manager = DisabledUsers()
         disabled_users = await disabled_users_manager.get_all_users()
 
@@ -107,6 +104,27 @@ async def handle_disabled_users_on_exit(panel_data):
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error while handling disabled users during exit: %s", e)
 
+async def graceful_shutdown(signal, panel_data):
+    """Handle graceful shutdown before forcibly exiting."""
+    logger.info(f"Received signal {signal.name}. Shutting down gracefully...")
+    try:
+        await handle_disabled_users_on_exit(panel_data)
+    except Exception as e:
+        logger.error("Error during shutdown: %s", e)
+    finally:
+        logger.info("Exiting forcefully...")
+        sys.exit(1)  # Exit forcefully after the cleanup.
+
+def setup_signal_handlers(loop, panel_data):
+    """Set up signal handlers to run cleanup and exit."""
+    if sys.platform != "win32":
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(
+                sig, lambda s=sig: asyncio.create_task(graceful_shutdown(s, panel_data))
+            )
+    else:
+        logger.warning("Signal handling is limited on Windows. Use Ctrl+C for exit.")
+
 async def main():
     """Main program entry point."""
     logger.info("Starting Telegram Bot...")
@@ -122,48 +140,26 @@ async def main():
         config_file["PANEL_DOMAIN"],
     )
 
+    loop = asyncio.get_running_loop()
+    setup_signal_handlers(loop, panel_data)
+
     try:
         while True:
             await run_tasks(panel_data, config_manager)
             await asyncio.sleep(60)
     except asyncio.CancelledError:
         logger.info("Tasks cancelled. Exiting...")
-        sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error during task execution: %s", e)
         await send_logs(f"Unexpected error: <code>{e}</code>")
-        sys.exit(1)
 
 if __name__ == "__main__":
     try:
-        with open("config.json", "r") as config_file2:
-            config2 = json.load(config_file2)
-        panel_data2 = PanelType(
-            config2["PANEL_USERNAME"],
-            config2["PANEL_PASSWORD"],
-            config2["PANEL_DOMAIN"],
-        )
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
-        try:
-            with open("config.json", "r") as config_file2:
-                config2 = json.load(config_file2)
-            panel_data2 = PanelType(
-                config2["PANEL_USERNAME"],
-                config2["PANEL_PASSWORD"],
-                config2["PANEL_DOMAIN"],
-            )
-            asyncio.run(handle_disabled_users_on_exit(panel_data2))
-        except Exception as e:
-            logger.error("Error during cleanup: %s", e)
         sys.exit(1)
-    except SystemExit:
-        logger.info("SystemExit raised. Cleaning up...")
-        asyncio.run(handle_disabled_users_on_exit(panel_data2))
-        raise
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         logger.error("Unhandled exception: %s", e)
-        asyncio.run(handle_disabled_users_on_exit(panel_data2))
         logger.error(traceback.format_exc())
         sys.exit(1)
