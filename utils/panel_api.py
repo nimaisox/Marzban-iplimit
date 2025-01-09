@@ -42,12 +42,6 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
     }
     url = f"{panel_data.panel_domain}/api/admin/token"
 
-    print(f"[DEBUG] URL for token request: {url}")
-    print(f"[DEBUG] Payload: {payload}")
-
-    if not url.startswith("http://") and not url.startswith("https://"):
-        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
-
     for attempt in range(20):
         try:
             timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)

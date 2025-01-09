@@ -32,8 +32,8 @@ jobs:
           nuitka-version: main
           script-name: main.py
           mode: onefile
-          include-package: "websockets,logging,httpx"
-          include-module: "httpx"
+          include-package: "websockets"
+          include-module: "_json,httpx"
           python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
@@ -81,7 +81,7 @@ jobs:
           nuitka-version: main
           script-name: main.py
           mode: onefile
-          include-package: "websockets,logging,httpx"
+          include-package: "websockets"
           include-module: "_bisect,_json,httpx"
           python-flag: "-OO"
           output-dir: .
