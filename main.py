@@ -166,15 +166,10 @@ async def main():
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-<<<<<<< HEAD
     panel_data = None 
 
     try: 
-=======
-    panel_data = None  # مقدار واقعی panel_data را اینجا قرار دهید
-
-    try:
->>>>>>> bdb2e76309c2270ea9884f81809a0f0f26dd29b0
+        panel_dtaa = None  # مقدار واقعی panel_data را اینجا قرار دهید
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
