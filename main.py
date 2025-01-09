@@ -104,9 +104,9 @@ async def handle_disabled_users_on_exit(panel_data):
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error while handling disabled users during exit: %s", e)
 
-async def graceful_shutdown(signal, panel_data):
+async def graceful_shutdown(signal_name, panel_data):
     """Handle graceful shutdown before forcibly exiting."""
-    logger.info(f"Received signal {signal.name}. Shutting down gracefully...")
+    logger.info(f"Received signal {signal_name}. Shutting down gracefully...")
     try:
         await handle_disabled_users_on_exit(panel_data)
     except Exception as e:
@@ -117,13 +117,19 @@ async def graceful_shutdown(signal, panel_data):
 
 def setup_signal_handlers(loop, panel_data):
     """Set up signal handlers to run cleanup and exit."""
+    stop_event = asyncio.Event()
+
+    def signal_handler(sig):
+        loop.create_task(graceful_shutdown(sig.name, panel_data))
+        stop_event.set()
+
     if sys.platform != "win32":
         for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(
-                sig, lambda s=sig: asyncio.create_task(graceful_shutdown(s, panel_data))
-            )
+            loop.add_signal_handler(sig, lambda sig=sig: signal_handler(sig))
     else:
         logger.warning("Signal handling is limited on Windows. Use Ctrl+C for exit.")
+
+    return stop_event
 
 async def main():
     """Main program entry point."""
@@ -141,10 +147,11 @@ async def main():
     )
 
     loop = asyncio.get_running_loop()
-    setup_signal_handlers(loop, panel_data)
+    stop_event = setup_signal_handlers(loop, panel_data)
 
     try:
-        while True:
+        logger.info("Running main tasks. Waiting for shutdown signal...")
+        while not stop_event.is_set():
             await run_tasks(panel_data, config_manager)
             await asyncio.sleep(60)
     except asyncio.CancelledError:
