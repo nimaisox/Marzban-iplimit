@@ -32,7 +32,7 @@ jobs:
           nuitka-version: main
           script-name: main.py
           mode: onefile
-          include-package: "websockets,httpx"
+          include-package: "websockets,logging,httpx"
           python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
@@ -65,7 +65,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
           cache: "pip"
           cache-dependency-path: |
             **/requirements*.txt
@@ -80,7 +80,7 @@ jobs:
           nuitka-version: main
           script-name: main.py
           mode: onefile
-          include-package: "websockets,httpx"
+          include-package: "websockets,logging,httpx"
           include-module: "_bisect,_json"
           python-flag: "-OO"
           output-dir: .
