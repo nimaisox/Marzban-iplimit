@@ -141,7 +141,7 @@ async def main():
         config_file["PANEL_PASSWORD"],
         config_file["PANEL_DOMAIN"],
     )
-
+    print(panel_data.panel_domain)
     setup_signal_handlers(panel_data)
 
     try:
