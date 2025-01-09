@@ -309,7 +309,8 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
             # Get configuration values
             time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
             check_interval = int(config_data.get("CHECK_INTERVAL"))
-            logger.info("Time to active users: %s, Check interval: %s", time_to_active_users, check_interval)
+            logger.info("Time to active users: %s, Check interval: %s",
+                         time_to_active_users, check_interval)
 
             # Reload disabled users from file
             dis_obj.disabled_users = dis_obj.load_disabled_users()
@@ -326,7 +327,8 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
                     logger.info("Enabling user: %s", username)
                     await enable_selected_users(panel_data, {username})
                     await dis_obj.remove_user(username)
-                    logger.info("User %s has been re-enabled and removed from the disabled list.", username)
+                    logger.info("User %s has been re-enabled and removed from the disabled list.",
+                                 username)
 
             await asyncio.sleep(check_interval)
 

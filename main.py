@@ -7,7 +7,7 @@ import asyncio
 import signal
 import sys
 import traceback
-import os
+import platform
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
@@ -103,7 +103,7 @@ async def handle_disabled_users_on_exit(panel_data):
 # Global stop event
 stop_event = asyncio.Event()
 
-async def graceful_shutdown(loop, panel_data):
+async def graceful_shutdown(panel_data):
     """Handle cleanup tasks and stop the event loop."""
     logger.info("Shutting down gracefully...")
     try:
@@ -111,21 +111,21 @@ async def graceful_shutdown(loop, panel_data):
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error during shutdown: %s", e)
     finally:
-        logger.info("Stopping the event loop...")
-        loop.stop()
+        logger.info("Cleanup completed. Exiting...")
         stop_event.set()
 
-def setup_shutdown_handlers(loop, panel_data):
-    """Setup shutdown handlers for signals."""
-    def signal_handler():
-        asyncio.create_task(graceful_shutdown(loop, panel_data))
+def setup_signal_handlers(panel_data):
+    """Setup signal handlers for termination signals."""
+    def signal_handler(sig, _):  # Signal handler for UNIX-like systems
+        logger.info("Received signal %s. Starting graceful shutdown...",sig)
+        asyncio.create_task(graceful_shutdown(panel_data))
 
-    # Use platform-independent signal handling
-    if os.name != "nt":  # Non-Windows (e.g., Linux, macOS)
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, signal_handler)
-    else:  # Windows
-        loop.add_signal_handler(signal.SIGINT, signal_handler)
+    if platform.system() != "Windows":
+        signal.signal(signal.SIGINT, signal_handler)  # Ctrl+C
+        signal.signal(signal.SIGTERM, signal_handler)  # Termination signal
+    else:
+        # For Windows, rely on KeyboardInterrupt
+        logger.info("Running on Windows: No native signal handlers needed.")
 
 async def main():
     """Main program entry point."""
@@ -142,8 +142,7 @@ async def main():
         config_file["PANEL_DOMAIN"],
     )
 
-    loop = asyncio.get_running_loop()
-    setup_shutdown_handlers(loop, panel_data)
+    setup_signal_handlers(panel_data)
 
     try:
         while not stop_event.is_set():  # Keep running until stop_event is set
@@ -155,13 +154,12 @@ async def main():
         logger.error("Error during task execution: %s", e)
         await send_logs(f"Unexpected error: <code>{e}</code>")
     finally:
+        await graceful_shutdown(panel_data)
         logger.info("Program exiting...")
 
 if __name__ == "__main__":
     try:
-        main_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(main_loop)
-        main_loop.run_until_complete(main())
+        asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         sys.exit(0)
