@@ -108,7 +108,8 @@ async def graceful_shutdown(signal_name, panel_data):
     """Handle graceful shutdown before forcibly exiting."""
     logger.info(f"Received signal {signal_name}. Shutting down gracefully...")
     try:
-        await handle_disabled_users_on_exit(panel_data)
+        task = asyncio.create_task(handle_disabled_users_on_exit(panel_data))
+        await task  # Wait for the task to complete
     except Exception as e:
         logger.error("Error during shutdown: %s", e)
     finally:
