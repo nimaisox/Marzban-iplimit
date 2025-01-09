@@ -7,6 +7,7 @@ import asyncio
 import signal
 import sys
 import traceback
+import os
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
@@ -99,24 +100,35 @@ async def handle_disabled_users_on_exit(panel_data):
     except Exception as e: # pylint: disable=broad-except
         logger.error("Error while handling disabled users during exit: %s", e)
 
-def handle_exit_signal(event_loop, panel_data):
-    """Handle termination signals and exit immediately."""
-    logger.info("Received termination signal. Executing cleanup...")
-    asyncio.create_task(final_cleanup_and_exit(event_loop, panel_data))
+# Global stop event
+stop_event = asyncio.Event()
 
-async def final_cleanup_and_exit(event_loop, panel_data):
-    """Run final cleanup and exit the program."""
+async def graceful_shutdown(loop, panel_data):
+    """Handle cleanup tasks and stop the event loop."""
+    logger.info("Shutting down gracefully...")
     try:
         await handle_disabled_users_on_exit(panel_data)
-    except Exception as e: # pylint: disable=broad-except
-        logger.error("Error during cleanup: %s",e)
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error("Error during shutdown: %s", e)
     finally:
-        logger.info("Cleanup completed. Exiting now...")
-        event_loop.stop()
-        sys.exit(0)
+        logger.info("Stopping the event loop...")
+        loop.stop()
+        stop_event.set()
+
+def setup_shutdown_handlers(loop, panel_data):
+    """Setup shutdown handlers for signals."""
+    def signal_handler():
+        asyncio.create_task(graceful_shutdown(loop, panel_data))
+
+    # Use platform-independent signal handling
+    if os.name != "nt":  # Non-Windows (e.g., Linux, macOS)
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            loop.add_signal_handler(sig, signal_handler)
+    else:  # Windows
+        loop.add_signal_handler(signal.SIGINT, signal_handler)
 
 async def main():
-    """Main function to initialize and run the program."""
+    """Main program entry point."""
     logger.info("Starting Telegram Bot...")
     asyncio.create_task(run_telegram_bot())
     await asyncio.sleep(2)
@@ -131,18 +143,19 @@ async def main():
     )
 
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, handle_exit_signal, loop, panel_data)
+    setup_shutdown_handlers(loop, panel_data)
 
     try:
-        while True:
+        while not stop_event.is_set():  # Keep running until stop_event is set
             await run_tasks(panel_data, config_manager)
             await asyncio.sleep(60)
     except asyncio.CancelledError:
         logger.info("Tasks cancelled. Exiting...")
-    except Exception as e: # pylint: disable=broad-except
-        logger.error("Error during task execution: %s",e)
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error("Error during task execution: %s", e)
         await send_logs(f"Unexpected error: <code>{e}</code>")
+    finally:
+        logger.info("Program exiting...")
 
 if __name__ == "__main__":
     try:
@@ -152,7 +165,7 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         sys.exit(0)
-    except Exception as e: # pylint: disable=broad-except
-        logger.error("Unhandled exception: %s",e)
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error("Unhandled exception: %s", e)
         logger.error(traceback.format_exc())
         sys.exit(1)
