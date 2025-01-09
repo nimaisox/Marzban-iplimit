@@ -81,7 +81,7 @@ jobs:
           script-name: main.py
           mode: onefile
           include-package: "websockets"
-          include-module: "_bisect,_json,httpx"
+          include-module: "_bisect,_json"
           python-flag: "-OO"
           output-dir: .
           include-plugin-directory: "utils"
