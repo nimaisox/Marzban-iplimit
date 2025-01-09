@@ -315,7 +315,6 @@ async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
             logger.info("Running enable_dis_user loop...")
 
             config_data = await config_manager.read_config()
-            logger.info("Configuration data: %s", config_data)
 
             time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
             check_interval = int(config_data.get("CHECK_INTERVAL"))

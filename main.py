@@ -4,10 +4,9 @@ main file that run other files and functions to run the program.
 """
 import argparse
 import asyncio
-import signal
+import atexit
 import sys
 import traceback
-import platform
 
 from run_telegram import run_telegram_bot
 from telegram_bot.send_message import send_logs
@@ -105,31 +104,14 @@ async def handle_disabled_users_on_exit(panel_data):
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error while handling disabled users during exit: %s", e)
 
-stop_event = asyncio.Event()
+def register_exit_handler(panel_data):
+    """Register atexit handler for cleanup."""
+    def exit_handler():
+        logger.info("Executing registered atexit handler...")
+        asyncio.run(handle_disabled_users_on_exit(panel_data))
 
-async def graceful_shutdown(panel_data):
-    """Handle cleanup tasks and stop the event loop."""
-    logger.info("Shutting down gracefully...")
-    try:
-        await handle_disabled_users_on_exit(panel_data)
-    except Exception as e:  # pylint: disable=broad-except
-        logger.error("Error during shutdown: %s", e)
-    finally:
-        logger.info("Cleanup completed. Exiting...")
-        stop_event.set()
-        logger.info("Goodbye! Program has exited successfully.")
-
-def setup_signal_handlers(panel_data):
-    """Setup signal handlers for termination signals."""
-    def signal_handler(sig, _):
-        logger.info("Received signal %s. Starting graceful shutdown...",sig)
-        asyncio.create_task(graceful_shutdown(panel_data))
-
-    if platform.system() != "Windows":
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-    else:
-        logger.info("Running on Windows: No native signal handlers needed.")
+    # Register the exit handler
+    atexit.register(exit_handler)
 
 async def main():
     """Main program entry point."""
@@ -146,27 +128,24 @@ async def main():
         config_file["PANEL_DOMAIN"],
     )
 
-    setup_signal_handlers(panel_data)
-
     try:
-        while not stop_event.is_set():
+        while True:
             await run_tasks(panel_data, config_manager)
             await asyncio.sleep(60)
     except asyncio.CancelledError:
         logger.info("Tasks cancelled. Exiting...")
+        sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Error during task execution: %s", e)
         await send_logs(f"Unexpected error: <code>{e}</code>")
-    finally:
-        await graceful_shutdown(panel_data)
-        logger.info("Program exiting...")
+        sys.exit(1)
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
-        sys.exit(0)
+        sys.exit(1)
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Unhandled exception: %s", e)
         logger.error(traceback.format_exc())
