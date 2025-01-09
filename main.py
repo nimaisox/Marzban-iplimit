@@ -106,11 +106,11 @@ async def handle_disabled_users_on_exit(panel_data):
 
 async def graceful_shutdown(signal_name, panel_data):
     """Handle graceful shutdown before forcibly exiting."""
-    logger.info(f"Received signal {signal_name}. Shutting down gracefully...")
+    logger.info("Received signal %s. Shutting down gracefully...", signal_name)
     try:
         cleanup_task = asyncio.create_task(handle_disabled_users_on_exit(panel_data))
         await cleanup_task
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         logger.error("Error during shutdown: %s", e)
     finally:
         logger.info("Shutdown complete. Exiting forcefully.")
@@ -118,15 +118,13 @@ async def graceful_shutdown(signal_name, panel_data):
 
 def setup_signal_handlers(panel_data):
     """Set up signal handlers for cleanup and exit."""
-    loop = asyncio.get_event_loop()
-
     def signal_handler(signal_name):
         print(f"Signal {signal_name} received. Triggering shutdown...")
         asyncio.create_task(graceful_shutdown(signal_name, panel_data))
 
     if sys.platform != "win32":
         for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, lambda s=sig: signal_handler(s.name))
+            asyncio.get_event_loop().add_signal_handler(sig, lambda s=sig: signal_handler(s.name))
     else:
         print("Signal handling is limited on Windows. Using KeyboardInterrupt for shutdown.")
 
@@ -163,21 +161,22 @@ async def main():
 if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    panel_data = None 
 
-    try: 
-        panel_dtaa = None
+    # panel_data تعریف در محدوده مشخص
+    PANEL_DATA_INSTANCE = None  # مقداردهی اولیه
+
+    try:
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         try:
-            # اجرای تمیزکاری
-            loop.run_until_complete(handle_disabled_users_on_exit(panel_data))
-        except Exception as e:
+            # استفاده از panel_data_instance
+            loop.run_until_complete(handle_disabled_users_on_exit(PANEL_DATA_INSTANCE))
+        except Exception as e:  # pylint: disable=broad-except
             logger.error("Error during shutdown: %s", e)
         finally:
             logger.info("Shutdown tasks complete.")
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
         logger.error("Unhandled exception: %s", e)
         logger.error(traceback.format_exc())
     finally:
