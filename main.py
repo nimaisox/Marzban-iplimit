@@ -164,8 +164,10 @@ async def main():
         logger.info("Main loop stopped.")
 
 if __name__ == "__main__":
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
-        asyncio.run(main())
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
     except Exception as e:  # pylint: disable=broad-except
@@ -173,4 +175,9 @@ if __name__ == "__main__":
         logger.error(traceback.format_exc())
     finally:
         logger.info("Shutdown complete.")
+        pending = asyncio.all_tasks(loop)
+        for task in pending:
+            task.cancel()
+        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        loop.close()
         sys.exit(0)
