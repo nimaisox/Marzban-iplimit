@@ -83,6 +83,9 @@ async def handle_disabled_users_on_exit(panel_data):
     """Handle disabled users during program exit."""
     try:
         logger.info("Handling disabled users during program exit...")
+
+        await asyncio.sleep(1)
+
         disabled_users_manager = DisabledUsers()
         disabled_users = await disabled_users_manager.get_all_users()
 
@@ -145,6 +148,9 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         sys.exit(1)
+    except SystemExit:
+        logger.info("SystemExit raised. Cleaning up...")
+        raise
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Unhandled exception: %s", e)
         logger.error(traceback.format_exc())
