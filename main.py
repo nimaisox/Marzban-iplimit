@@ -162,15 +162,13 @@ if __name__ == "__main__":
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    # panel_data تعریف در محدوده مشخص
-    PANEL_DATA_INSTANCE = None  # مقداردهی اولیه
+    PANEL_DATA_INSTANCE = None
 
     try:
         loop.run_until_complete(main())
     except KeyboardInterrupt:
         logger.info("Program interrupted by user. Exiting gracefully.")
         try:
-            # استفاده از panel_data_instance
             loop.run_until_complete(handle_disabled_users_on_exit(PANEL_DATA_INSTANCE))
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error during shutdown: %s", e)
