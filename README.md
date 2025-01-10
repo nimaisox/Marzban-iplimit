@@ -6,6 +6,40 @@ Supports both IPv4 and IPv6 for Marzban-node.
 
 ---
 
+# **Features of Marzban Iplimit**
+
+1. **Support for Marzban-node**  
+   Provides control and management of active user IP limits for Marzban nodes.
+
+2. **HTTP/2 Support for Requests**  
+   Enhances speed and efficiency by supporting the HTTP/2 protocol for request handling.
+
+3. **Disable User Subscriptions**  
+   Automatically disables user subscriptions if IP limits are exceeded or unauthorized usage is detected.
+
+4. **Telegram Bot Integration**  
+   Comes with a Telegram bot for easy management and control through various commands.
+
+5. **Easy Installation with Smart Setup**  
+   Simplifies installation and configuration using the Smart Setup feature.
+
+6. **Proxy Support for IP Requests**  
+   Allows using proxies to improve IP detection accuracy in various network configurations.
+
+7. **Support for IP Exceptions and Custom Limits**  
+   Enables defining exception lists and setting specific IP limits for selected users.
+
+8. **IPv4 and IPv6 Compatibility**  
+   Manages both IPv4 and IPv6 IPs simultaneously.
+
+9. **Advanced Log Management**  
+   Supports detailed logging for better monitoring and troubleshooting, even with HAProxy setups.
+
+10. **Configuration Backup Support**  
+    Provides the ability to send backup files containing user data and configurations directly through the Telegram bot.
+
+---
+
 ## **Table of Contents**
 
 1. [Installation](#installation)  
