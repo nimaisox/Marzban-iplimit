@@ -97,7 +97,7 @@ async def get_panel_logs(panel_data: PanelType) -> None:
         while True:
             try:
                 async with websockets.connect(url, ssl=current_ssl_ctx,
-                                               ping_interval=60, ping_timeout=50) as ws:
+                                               ping_interval=20, ping_timeout=15) as ws:
                     log_message = f"Connected to panel logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -159,7 +159,7 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
         while True:
             try:
                 async with websockets.connect(url, ssl=ssl_ctx,
-                                               ping_interval=60, ping_timeout=50) as ws:
+                                               ping_interval=20, ping_timeout=15) as ws:
                     log_message = f"Connected to node {node.node_id} logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
