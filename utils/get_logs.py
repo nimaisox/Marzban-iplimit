@@ -239,7 +239,7 @@ async def handle_cancel_all(tasks: list[Task], panel_data: PanelType) -> None:
     """
     async with asyncio.TaskGroup() as tg:
         while True:
-            await asyncio.sleep(8192)  # =~ 2 hours and 27 minutes
+            await asyncio.sleep(10800)  # =~ 3 hours
             for task in tasks:
                 logger.warning(" %s...", task.get_name())
                 task.cancel()
