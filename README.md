@@ -6,7 +6,7 @@ Supports both IPv4 and IPv6 for Marzban-node.
 
 ---
 
-# **Features of Marzban-iplimit**
+# **Features of Marzban Iplimit**
 
 1. **Support for Marzban-node**  
    Provides control and management of active user IP limits for Marzban nodes.
