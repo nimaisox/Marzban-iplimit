@@ -147,16 +147,19 @@ async def check_ip(ip_address: str, config_manager: ConfigManager) -> None | str
 
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 429:
-                logger.warning("Too Many Requests from endpoint %s. Trying another endpoint...", endpoint)
+                logger.warning("Too Many Requests from endpoint %s. Trying another endpoint...",
+                                endpoint)
                 continue
             logger.error("HTTP status %s for %s: %s", e.response.status_code, url, e.response.text)
 
         except (httpx.ProxyError, httpx.ConnectError, httpx.TimeoutException) as e:
-            logger.warning("Connection error using endpoint %s%s: %s", endpoint, f" via proxy {proxy_url}" if proxy_url else "", e)
+            logger.warning("Connection error using endpoint %s%s: %s", endpoint,
+                            f" via proxy {proxy_url}" if proxy_url else "", e)
             return None
 
         except Exception as e:  # pylint: disable=broad-except
-            logger.error("Unexpected error using endpoint %s%s: %s", endpoint, f" via proxy {proxy_url}" if proxy_url else "", e)
+            logger.error("Unexpected error using endpoint %s%s: %s",
+                          endpoint, f" via proxy {proxy_url}" if proxy_url else "", e)
             return None
 
     logger.error("All API endpoints failed for IP: %s", ip_address)

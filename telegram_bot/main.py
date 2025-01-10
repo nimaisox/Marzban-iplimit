@@ -43,7 +43,7 @@ async def initialize_bot():
         sys.exit()
 
 bot_token = asyncio.run(initialize_bot())
-application = ApplicationBuilder().token(bot_token).build()
+application = ApplicationBuilder().token(bot_token).read_timeout(30).build()
 
 START_MESSAGE = """
 ✨<b>Commands List:</b>

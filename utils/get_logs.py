@@ -61,7 +61,7 @@ async def get_panel_logs(panel_data: PanelType) -> None:
     """
     Establishes a websocket connection to retrieve logs from a panel server.
     """
-    interval = random.choice(("0.9", "1.3", "1.5", "1.7"))
+    interval = random.uniform(0.9, 1.7)
     try:
         get_panel_token = await get_token(panel_data)
         token = get_panel_token.panel_token
@@ -97,7 +97,7 @@ async def get_panel_logs(panel_data: PanelType) -> None:
         while True:
             try:
                 async with websockets.connect(url, ssl=current_ssl_ctx,
-                                               ping_interval=30, ping_timeout=20) as ws:
+                                               ping_interval=60, ping_timeout=50) as ws:
                     log_message = f"Connected to panel logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -123,7 +123,7 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
     """
     Establish a WebSocket connection to a specific node and retrieve logs.
     """
-    interval = random.choice(("0.9", "1.3", "1.5", "1.7"))
+    interval = random.uniform(0.9, 1.7)
     try:
         get_panel_token = await get_token(panel_data)
         token = get_panel_token.panel_token
@@ -147,6 +147,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
     secure_ssl_context.check_hostname = True
     secure_ssl_context.verify_mode = ssl.CERT_REQUIRED
 
+    retry_delay = 1
+
     for scheme in schemes:
         url = (
             f"{scheme}://{panel_domain}/api/node/{node.node_id}/logs"
@@ -157,7 +159,7 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
         while True:
             try:
                 async with websockets.connect(url, ssl=ssl_ctx,
-                                               ping_interval=30, ping_timeout=20) as ws:
+                                               ping_interval=60, ping_timeout=50) as ws:
                     log_message = f"Connected to node {node.node_id} logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -175,7 +177,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                     scheme,
                     error,
                 )
-                await asyncio.sleep(20)
+                await asyncio.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 60)
                 continue
             except ssl.SSLError as error:
                 logger.error(
@@ -185,7 +188,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                     scheme,
                     error,
                 )
-                await asyncio.sleep(20)
+                await asyncio.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 60)
                 continue
             except Exception as error:  # pylint: disable=broad-except
                 logger.error(
@@ -195,7 +199,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
                     scheme,
                     error,
                 )
-                await asyncio.sleep(20)
+                await asyncio.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 60)
                 continue
 
 async def handle_cancel(panel_data: PanelType, tasks: list[Task]) -> None:
