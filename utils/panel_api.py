@@ -22,13 +22,17 @@ except ImportError:
     sys.exit()
 
 
-async def get_token(panel_data: PanelType) -> PanelType | ValueError:
+async def get_token(panel_data: PanelType, max_retries=20,
+                     retry_delay_min=2, retry_delay_max=5) -> PanelType | ValueError:
     """
     Get access token from the panel API.
 
     Args:
         panel_data (PanelType): A PanelType object containing
         the username, password, and domain for the panel API.
+        max_retries (int): Maximum number of attempts to get the token. Defaults to 20.
+        retry_delay_min (int): Minimum delay between retries in seconds. Defaults to 2.
+        retry_delay_max (int): Maximum delay between retries in seconds. Defaults to 5.
 
     Returns:
         PanelType: The updated PanelType object with the access token.
@@ -45,27 +49,40 @@ async def get_token(panel_data: PanelType) -> PanelType | ValueError:
     if not url.startswith("http://") and not url.startswith("https://"):
         raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
 
-    for attempt in range(20):
+    for attempt in range(max_retries):
         try:
-            timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
+            timeout = httpx.Timeout(connect=60.0, read=10.0, write=10.0, pool=10.0)
             async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
                 response = await client.post(url, data=payload)
                 response.raise_for_status()
+
             json_obj = response.json()
             panel_data.panel_token = json_obj["access_token"]
+            logger.info("Token retrieved successfully on attempt %d.", attempt + 1)
             return panel_data
-        except httpx.HTTPStatusError:
-            message = f"[{response.status_code}] {response.text}"
+
+        except httpx.HTTPStatusError as http_error:
+            message = (
+                f"[{http_error.response.status_code}] {http_error.response.text}. "
+                f"URL: {url}, Attempt: {attempt + 1}/{max_retries}"
+            )
             await send_logs(message)
             logger.error(message)
-        except Exception as error:  # pylint: disable=broad-except
-            message = f"Unexpected error during token request: {error}\n{traceback.format_exc()}"
+
+        except Exception as error: # pylint: disable=broad-except
+            message = (
+                f"Unexpected error during token request: {error}\n"
+                f"{traceback.format_exc()}. Attempt: {attempt + 1}/{max_retries}"
+            )
             await send_logs(message)
             logger.error(message)
-        await asyncio.sleep(random.randint(2, 5) * (attempt + 1))
+
+        delay = random.randint(retry_delay_min, retry_delay_max) * (attempt + 1)
+        logger.warning("Retrying in %d seconds... (Attempt %d/%d)", delay, attempt + 1, max_retries)
+        await asyncio.sleep(delay)
 
     message = (
-        "Failed to get token after 20 attempts. Make sure the panel is running "
+        "Failed to get token after {max_retries} attempts. Ensure the panel is running "
         "and the username and password are correct."
     )
     await send_logs(message)
