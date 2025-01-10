@@ -85,6 +85,8 @@ async def get_panel_logs(panel_data: PanelType) -> None:
     ssl_ctx.check_hostname = True
     ssl_ctx.verify_mode = ssl.CERT_REQUIRED
 
+    retry_delay = 1
+
     for scheme in schemes:
         url = (
             f"{scheme}://{panel_domain}/api/core/logs"
@@ -94,7 +96,8 @@ async def get_panel_logs(panel_data: PanelType) -> None:
 
         while True:
             try:
-                async with websockets.connect(url, ssl=current_ssl_ctx, ping_interval=10) as ws:
+                async with websockets.connect(url, ssl=current_ssl_ctx,
+                                               ping_interval=30, ping_timeout=20) as ws:
                     log_message = f"Connected to panel logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -106,12 +109,14 @@ async def get_panel_logs(panel_data: PanelType) -> None:
                         await parse_logs(str(new_log), config_manager)
             except ConnectionClosedError as error:
                 logger.error("Connection closed unexpectedly for %s: %s", scheme, error)
-                await asyncio.sleep(20)
+                await asyncio.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 60)
                 continue
             except Exception as error:  # pylint: disable=broad-except
                 logger.error("Unexpected error with %s: %s\n%s", scheme, error,
                               traceback.format_exc())
-                await asyncio.sleep(20)
+                await asyncio.sleep(retry_delay)
+                retry_delay = min(retry_delay * 2, 60)
                 continue
 
 async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
@@ -151,7 +156,8 @@ async def get_nodes_logs(panel_data: PanelType, node: NodeType) -> None:
 
         while True:
             try:
-                async with websockets.connect(url, ssl=ssl_ctx, ping_interval=10) as ws:
+                async with websockets.connect(url, ssl=ssl_ctx,
+                                               ping_interval=30, ping_timeout=20) as ws:
                     log_message = f"Connected to node {node.node_id} logs via {scheme} protocol."
                     await send_logs(log_message)
                     logger.info(log_message)
@@ -270,6 +276,31 @@ async def check_and_add_new_nodes(panel_data: PanelType, tg: asyncio.TaskGroup) 
         await asyncio.sleep(25)
 
 
+TASKS_LOCK = asyncio.Lock()
+
+async def safe_append_task(task):
+    """
+    Safely appends a task to the TASKS list with a lock to ensure thread-safe operations.
+
+    Args:
+        task (asyncio.Task): The task to be appended to the TASKS list.
+    """
+    async with TASKS_LOCK:
+        TASKS.append(task)
+
+async def safe_remove_task(task):
+    """
+    Safely removes a task from the TASKS list with a lock to ensure thread-safe operations.
+    If the task is not found in the list, no action is taken.
+
+    Args:
+        task (asyncio.Task): The task to be removed from the TASKS list.
+    """
+    async with TASKS_LOCK:
+        if task in TASKS:
+            TASKS.remove(task)
+
+
 async def create_panel_task(panel_data: PanelType, tg: asyncio.TaskGroup) -> None:
     """
     An asynchronous coroutine that creates a new task for a node and adds it to the TASKS list.
@@ -279,18 +310,20 @@ async def create_panel_task(panel_data: PanelType, tg: asyncio.TaskGroup) -> Non
         tg (asyncio.TaskGroup): The TaskGroup to which the new task will be added.
     """
     try:
-        if any(task.get_name() == "Task-panel" for task in TASKS):
-            logger.info("Task-panel already exists. Skipping creation.")
-            return
+        async with TASKS_LOCK:
+            if any(task.get_name() == "Task-panel" for task in TASKS):
+                logger.info("Task-panel already exists. Skipping creation.")
+                return
 
         logger.info("Creating Task-panel...")
         new_task = tg.create_task(get_panel_logs(panel_data), name="Task-panel")
-        TASKS.append(new_task)
+        await safe_append_task(new_task)
 
-        new_task.add_done_callback(lambda t: TASKS.remove(new_task))
+        new_task.add_done_callback(lambda t: asyncio.create_task(safe_remove_task(new_task)))
         logger.info("Task-panel successfully created and added to TASKS.")
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
         logger.error("Failed to create Task-panel: %s", e)
+
 
 async def create_node_task(
     panel_data: PanelType, tg: asyncio.TaskGroup, node: NodeType
