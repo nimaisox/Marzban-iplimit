@@ -73,9 +73,6 @@ class ConfigManager:
                     if "ADMINS" not in self.config_data:
                         logger.error("ADMINS is not set in the config file.")
                         raise KeyError("ADMINS is missing in the config file.")
-                    if "ADMINS" not in self.config_data:
-                        logger.error("ADMINS is not set in the config file.")
-                        raise KeyError("ADMINS is missing in the config file.")
 
                     self.last_read_time = time.time()
 
@@ -127,7 +124,7 @@ class ConfigManager:
                     json.dump(self.config_data, f, indent=4)
                 self.last_read_time = time.time()
                 logger.info("Configuration file updated successfully.")
-                return  # Exit after a successful update
+                return
             except Exception as e:  # pylint: disable=broad-except
                 logger.error(
                     "Attempt %d/%d to update the config file failed: %s. Retrying in %d seconds...",
