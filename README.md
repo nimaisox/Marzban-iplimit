@@ -1,4 +1,4 @@
-# **Marzban-iplimit**
+# **Marzban Iplimit**
 
 **A tool to limit the number of active users with IPs for [Marzban](https://github.com/Gozargah/Marzban)**  
 Supports both IPv4 and IPv6 for Marzban-node.  
