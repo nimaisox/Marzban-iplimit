@@ -8,16 +8,9 @@ jobs:
   build-windows:
     strategy:
       matrix:
-        include:
-          - os: windows-2022
-            os_name: windows
-            arch: x86_64
-            arch_name: amd64
-          - os: windows-2022
-            os_name: windows
-            arch: arm64
-            arch_name: arm64
-    runs-on: ${{ matrix.os }}
+        platform:
+          - amd64
+    runs-on: windows-2022
 
     steps:
       - name: Check-out repository
@@ -58,17 +51,9 @@ jobs:
   build-linux:
     strategy:
       matrix:
-        include:
-          - os: ubuntu-20.04
-            os_name: linux
-            arch: x86_64
-            arch_name: amd64
-          - os: ubuntu-20.04
-            os_name: linux
-            arch: arm64
-            arch_name: arm64
-    runs-on: ${{ matrix.os }}
-
+        platform:
+          - amd64
+    runs-on: ubuntu-20.04
     steps:
       - name: Check-out repository
         uses: actions/checkout@v4
