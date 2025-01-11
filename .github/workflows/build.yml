@@ -45,3 +45,10 @@ jobs:
           name: marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}
           path: |
             ./marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}.${{ matrix.os == 'windows-2022' && 'exe' || 'bin' }}
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}
+          path: |
+            ./marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}.${{ matrix.os == 'windows-2022' && 'exe' || 'bin' }}
