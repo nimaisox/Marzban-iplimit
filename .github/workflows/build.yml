@@ -18,6 +18,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Check architecture
+        run: |
+          echo "Architecture: $(uname -m)"
+
       - name: Check-out repository
         uses: actions/checkout@v4
 
@@ -40,7 +44,7 @@ jobs:
           script-name: main.py
           mode: onefile
           include-package: "websockets"
-          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
+          python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
           output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
@@ -68,6 +72,11 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Check architecture
+        run: |
+          echo "Architecture: $(uname -m)"
+
+
       - name: Check-out repository
         uses: actions/checkout@v4
 
@@ -91,7 +100,7 @@ jobs:
           mode: onefile
           include-package: "websockets"
           include-module: "_bisect,_json"
-          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
+          python-flag: "-OO"
           output-dir: .
           include-plugin-directory: "utils"
           output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
