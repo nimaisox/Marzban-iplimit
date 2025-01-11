@@ -40,7 +40,7 @@ jobs:
           script-name: main.py
           mode: onefile
           include-package: "websockets"
-          python-flag: "-OO"
+          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
           include-plugin-directory: "utils"
           output-dir: .
           output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
