@@ -10,9 +10,11 @@ jobs:
           - os: windows-2022
             os_name: windows
             arch: x86_64
+            arch_name: amd64
           - os: windows-2022
             os_name: windows
             arch: arm64
+            arch_name: arm64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -41,14 +43,14 @@ jobs:
           python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
-          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.exe
+          output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          name: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}
           path: |
-            ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.exe
+            ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
 
 
   build-linux:
@@ -58,9 +60,11 @@ jobs:
           - os: ubuntu-20.04
             os_name: linux
             arch: x86_64
+            arch_name: amd64
           - os: ubuntu-20.04
             os_name: linux
             arch: arm64
+            arch_name: arm64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -87,13 +91,13 @@ jobs:
           mode: onefile
           include-package: "websockets"
           include-module: "_bisect,_json"
-          python-flag: "-OO"
+          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
           output-dir: .
           include-plugin-directory: "utils"
-          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+          output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
 
       - uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          name: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}
           path: |
-            ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+            ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin

@@ -42,7 +42,7 @@ jobs:
           script-name: main.py
           mode: onefile
           include-package: "websockets"
-          python-flag: "-OO"
+          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
           include-plugin-directory: "utils"
           output-dir: .
           output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
@@ -93,7 +93,7 @@ jobs:
           mode: onefile
           include-package: "websockets"
           include-module: "_bisect,_json"
-          python-flag: "-OO"
+          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
           output-dir: .
           include-plugin-directory: "utils"
           output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
@@ -111,25 +111,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download artifacts (x86_64)
+      - name: Download artifacts (AMD64) Linux
         uses: actions/download-artifact@v4
         with:
-          name: marzban_iplimit_x86_64_linux
-          path: ./artifacts/x86_64_linux
+          name: marzban_iplimit_amd64_linux
+          path: ./artifacts/amd64_linux
 
-      - name: Download artifacts (ARM64)
+      - name: Download artifacts (ARM64) Linux
         uses: actions/download-artifact@v4
         with:
           name: marzban_iplimit_arm64_linux
           path: ./artifacts/arm64_linux
 
-      - name: Download artifacts (x86_64)
+      - name: Download artifacts (AMD64) Windows
         uses: actions/download-artifact@v4
         with:
-          name: marzban_iplimit_x86_64_windows
-          path: ./artifacts/x86_64_windows
+          name: marzban_iplimit_amd64_windows
+          path: ./artifacts/amd64_windows
 
-      - name: Download artifacts (ARM64)
+      - name: Download artifacts (ARM64) Windows
         uses: actions/download-artifact@v4
         with:
           name: marzban_iplimit_arm64_windows
@@ -146,13 +146,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Uploading x86_64 files..."
+          echo "Uploading AMD64 files..."
           gh release upload ${{ github.ref_name }} ./artifacts/x86_64_linux/marzban_iplimit_amd64_linux.bin
 
           echo "Uploading ARM64 files..."
           gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban_iplimit_arm64_linux.bin
 
-          echo "Uploading x86_64 files..."
+          echo "Uploading AMD64 files..."
           gh release upload ${{ github.ref_name }} ./artifacts/x86_64_windows/marzban_iplimit_amd64_windows.exe
 
           echo "Uploading ARM64 files..."
