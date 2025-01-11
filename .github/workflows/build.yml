@@ -6,13 +6,10 @@ jobs:
   build-windows:
     strategy:
       matrix:
-        os: [windows-2022]
-        arch:
-          - name: x86_64
-            display_name: amd64
-          - name: arm64
-            display_name: arm64
-    runs-on: ${{ matrix.os }}
+        platform:
+          - amd64
+          - arm64
+    runs-on: windows-2022
 
     steps:
       - name: Check architecture
@@ -44,27 +41,23 @@ jobs:
           python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
-          output-file: marzban_iplimit_${{ matrix.arch.display_name }}_windows.exe
+          output-file: marzban_iplimit_${{ matrix.platform }}_windows.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch.display_name }}_windows
+          name: marzban_iplimit_${{ matrix.platform }}_windows
           path: |
-            ./marzban_iplimit_${{ matrix.arch.display_name }}_windows.exe
+            ./marzban_iplimit_${{ matrix.platform }}_windows.exe
 
 
   build-linux:
     strategy:
       matrix:
-        os: [windows-2022]
-        arch:
-          - name: x86_64
-            display_name: amd64
-          - name: arm64
-            display_name: arm64
-    runs-on: ${{ matrix.os }}
-
+        platform:
+          - amd64
+          - arm64
+    runs-on: ubuntu-20.04
     steps:
       - name: Check architecture
         run: |
@@ -97,10 +90,10 @@ jobs:
           python-flag: "-OO"
           output-dir: .
           include-plugin-directory: "utils"
-          output-file: marzban_iplimit_${{ matrix.arch.display_name }}_windows.bin
+          output-file: marzban_iplimit_${{ matrix.platform }}_windows.bin
 
       - uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch.display_name }}_windows
+          name: marzban_iplimit_${{ matrix.platform }}_windows
           path: |
-            ./marzban_iplimit_${{ matrix.arch.display_name }}_windows.bin
+            ./marzban_iplimit_${{ matrix.platform }}_windows.bin
