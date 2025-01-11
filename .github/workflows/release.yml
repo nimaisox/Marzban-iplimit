@@ -103,7 +103,10 @@ jobs:
 
   release:
     needs: [build-linux, build-windows]
-    runs-on: [ubuntu-22.04, windows-2022]
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-2022]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
