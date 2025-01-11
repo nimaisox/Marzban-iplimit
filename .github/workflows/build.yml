@@ -36,7 +36,8 @@ jobs:
           python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
-          output-file: marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}.${{ matrix.os == 'windows-2022' && 'exe' || 'bin' }}"
+          output-file: marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}.${{ matrix.os == 'windows-2022' && 'exe' || 'bin' }}
+          static-libpython: "yes"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
