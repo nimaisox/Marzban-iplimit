@@ -5,12 +5,12 @@ on:
     tags:
         - '*'
 jobs:
-  build-windows:
+  build:
     strategy:
       matrix:
-        platform:
-          - amd64
-    runs-on: windows-2022
+        os: [windows-2022, ubuntu-20.04]
+        platform: [amd64]
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check-out repository
@@ -28,48 +28,6 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Build Executable with Nuitka (Windows Specific)
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          nuitka-version: main
-          script-name: main.py
-          mode: onefile
-          include-package: "websockets"
-          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
-          include-plugin-directory: "utils"
-          output-dir: .
-          output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
-
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}
-          path: |
-            ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
-
-
-  build-linux:
-    strategy:
-      matrix:
-        platform:
-          - amd64
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Check-out repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-          cache: "pip"
-          cache-dependency-path: |
-            **/requirements*.txt
-
-      - name: Install your Dependencies
-        run: |
-          pip install -r requirements.txt
-
       - name: Build Executable with Nuitka
         uses: Nuitka/Nuitka-Action@main
         with:
@@ -77,48 +35,31 @@ jobs:
           script-name: main.py
           mode: onefile
           include-package: "websockets"
-          include-module: "_bisect,_json"
-          python-flag: "-OO --assume-architecture=${{ matrix.arch }}"
-          output-dir: .
+          python-flag: "-OO"
           include-plugin-directory: "utils"
-          output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
+          output-dir: .
+          output-file: marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}.${{ matrix.os == 'windows-2022' && 'exe' || 'bin' }}
+          static-libpython: ${{ matrix.os == 'ubuntu-20.04' && 'yes' || '' }}
+          include-module: ${{ matrix.os == 'ubuntu-20.04' && '_bisect,_json' || '' }}
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}
+          name: marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}
           path: |
-            ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
+            ./marzban_iplimit_${{ matrix.platform }}_${{ matrix.os == 'windows-2022' && 'windows' || 'linux' }}.${{ matrix.os == 'windows-2022' && 'exe' || 'bin' }}
 
 
   release:
-    needs: [build-linux, build-windows]
+    needs: [build]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download artifacts (AMD64) Linux
+      - name: Download All Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: marzban_iplimit_amd64_linux
-          path: ./artifacts/amd64_linux
-
-      - name: Download artifacts (ARM64) Linux
-        uses: actions/download-artifact@v4
-        with:
-          name: marzban_iplimit_arm64_linux
-          path: ./artifacts/arm64_linux
-
-      - name: Download artifacts (AMD64) Windows
-        uses: actions/download-artifact@v4
-        with:
-          name: marzban_iplimit_amd64_windows
-          path: ./artifacts/amd64_windows
-
-      - name: Download artifacts (ARM64) Windows
-        uses: actions/download-artifact@v4
-        with:
-          name: marzban_iplimit_arm64_windows
-          path: ./artifacts/arm64_windows
+          path: ./artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -134,11 +75,5 @@ jobs:
           echo "Uploading AMD64 files..."
           gh release upload ${{ github.ref_name }} ./artifacts/amd64_linux/marzban_iplimit_amd64_linux.bin
 
-          echo "Uploading ARM64 files..."
-          gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban_iplimit_arm64_linux.bin
-
           echo "Uploading AMD64 files..."
           gh release upload ${{ github.ref_name }} ./artifacts/amd64_windows/marzban_iplimit_amd64_windows.exe
-
-          echo "Uploading ARM64 files..."
-          gh release upload ${{ github.ref_name }} ./artifacts/arm64_windows/marzban_iplimit_arm64_windows.exe
