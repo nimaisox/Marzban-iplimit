@@ -56,10 +56,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download All Artifacts
+      - name: Download artifacts (AMD64) Linux
         uses: actions/download-artifact@v4
         with:
-          path: ./artifacts
+          name: marzban_iplimit_amd64_linux
+          path: ./artifacts/amd64_linux
+
+      - name: Download artifacts (AMD64) Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: marzban_iplimit_amd64_windows
+          path: ./artifacts/amd64_windows
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
