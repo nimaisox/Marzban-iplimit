@@ -50,7 +50,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          name: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}
           path: |
             ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
 
@@ -100,7 +100,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
+          name: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}
           path: |
             ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
 
@@ -147,13 +147,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Uploading AMD64 files..."
-          gh release upload ${{ github.ref_name }} ./artifacts/x86_64_linux/marzban_iplimit_amd64_linux.bin
+          gh release upload ${{ github.ref_name }} ./artifacts/amd64_linux/marzban_iplimit_amd64_linux.bin
 
           echo "Uploading ARM64 files..."
           gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban_iplimit_arm64_linux.bin
 
           echo "Uploading AMD64 files..."
-          gh release upload ${{ github.ref_name }} ./artifacts/x86_64_windows/marzban_iplimit_amd64_windows.exe
+          gh release upload ${{ github.ref_name }} ./artifacts/amd64_windows/marzban_iplimit_amd64_windows.exe
 
           echo "Uploading ARM64 files..."
           gh release upload ${{ github.ref_name }} ./artifacts/arm64_windows/marzban_iplimit_arm64_windows.exe
