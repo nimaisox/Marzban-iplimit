@@ -12,9 +12,11 @@ jobs:
           - os: windows-2022
             os_name: windows
             arch: x86_64
+            arch_name: amd64
           - os: windows-2022
             os_name: windows
             arch: arm64
+            arch_name: arm64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -43,14 +45,14 @@ jobs:
           python-flag: "-OO"
           include-plugin-directory: "utils"
           output-dir: .
-          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.exe
+          output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
           path: |
-            ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.exe
+            ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.exe
 
 
   build-linux:
@@ -60,9 +62,11 @@ jobs:
           - os: ubuntu-20.04
             os_name: linux
             arch: x86_64
+            arch_name: amd64
           - os: ubuntu-20.04
             os_name: linux
             arch: arm64
+            arch_name: arm64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -92,13 +96,13 @@ jobs:
           python-flag: "-OO"
           output-dir: .
           include-plugin-directory: "utils"
-          output-file: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+          output-file: marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
 
       - uses: actions/upload-artifact@v4
         with:
           name: marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}
           path: |
-            ./marzban_iplimit_${{ matrix.arch }}_${{ matrix.os_name }}.bin
+            ./marzban_iplimit_${{ matrix.arch_name }}_${{ matrix.os_name }}.bin
 
 
   release:
@@ -145,24 +149,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Renaming and uploading x86_64 files..."
-          mv ./artifacts/x86_64_linux/marzban_iplimit_x86_64_linux.bin ./artifacts/x86_64_linux/marzban_iplimit_amd64_linux.bin
-
-          echo "Renaming and uploading x86_64 files..."
-          mv ./artifacts/x86_64_linux/marzban_iplimit_x86_64_windows.bin ./artifacts/x86_64_windows/marzban_iplimit_amd64_windows.bin
-
           echo "Uploading x86_64 files..."
-          ls -al ./artifacts/x86_64_linux
           gh release upload ${{ github.ref_name }} ./artifacts/x86_64_linux/marzban_iplimit_amd64_linux.bin
 
           echo "Uploading ARM64 files..."
-          ls -al ./artifacts/arm64_linux
           gh release upload ${{ github.ref_name }} ./artifacts/arm64_linux/marzban_iplimit_arm64_linux.bin
 
           echo "Uploading x86_64 files..."
-          ls -al ./artifacts/x86_64_windows
-          gh release upload ${{ github.ref_name }} ./artifacts/x86_64_windows/marzban_iplimit_amd64_windows.bin
+          gh release upload ${{ github.ref_name }} ./artifacts/x86_64_windows/marzban_iplimit_amd64_windows.exe
 
           echo "Uploading ARM64 files..."
-          ls -al ./artifacts/arm64_windows
-          gh release upload ${{ github.ref_name }} ./artifacts/arm64_windows/marzban_iplimit_arm64_windows.bin
+          gh release upload ${{ github.ref_name }} ./artifacts/arm64_windows/marzban_iplimit_arm64_windows.exe
