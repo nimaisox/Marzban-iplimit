@@ -74,7 +74,7 @@ async def run_tasks(panel_data, config_manager):
                     await asyncio.sleep(4)
 
         logger.info("Starting additional background tasks...")
-        if len(asyncio.all_tasks()) < 50:  # محدودیت برای جلوگیری از تسک‌های بیش از حد
+        if len(asyncio.all_tasks()) < 50:
             tg.create_task(check_and_add_new_nodes(panel_data, tg), name="add_new_nodes")
             tg.create_task(handle_cancel(panel_data, TASKS), name="cancel_disable_nodes")
             tg.create_task(handle_cancel_all(TASKS, panel_data), name="cancel_all")
@@ -150,7 +150,7 @@ async def main():
     """Main program entry point."""
     logger.info("Starting Telegram Bot...")
     asyncio.create_task(run_telegram_bot())
-    asyncio.create_task(monitor_tasks())  # مانیتورینگ تعداد تسک‌ها
+    asyncio.create_task(monitor_tasks())
     await asyncio.sleep(2)
 
     config_manager = ConfigManager(config_file="config.json")
