@@ -186,6 +186,14 @@ pip install -r requirements.txt
 python3 main.py
 ```
 
+Dev branch
+```bash
+git clone -b dev https://github.com/nimaisox/Marzban-iplimit.git
+cd Marzban-iplimit
+pip install -r requirements.txt
+python3 main.py
+```
+
 ---
 
 ## **Credits**
