@@ -15,11 +15,11 @@ case "$ARCHITECTURE" in
         ;;
     aarch64)
         ARCHITECTURE="arm64"
+        echo "Build not supported for ARM architecture."
+        exit 1
         ;;
     *)
-        echo "Unsupported ARCHITECTURE: $ARCHITECTURE"
-        echo "Press any key to exit..."
-        read -n 1 -s
+        echo "Unsupported architecture: $ARCHITECTURE"
         exit 1
         ;;
 esac
