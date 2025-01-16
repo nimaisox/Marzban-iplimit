@@ -2,6 +2,9 @@
 main.py is the
 main file that runs other files and functions to run the program.
 """
+
+# pylint: disable=broad-except
+
 import argparse
 import asyncio
 import sys
