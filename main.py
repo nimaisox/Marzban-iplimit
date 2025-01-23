@@ -140,9 +140,15 @@ def setup_signal_handlers(panel_data):
 
 async def monitor_tasks():
     """Monitor the number of running asyncio tasks."""
+    max_tasks = 50  # مقدار مناسب برای جلوگیری از مصرف بی‌رویه CPU
     while True:
         tasks = [task for task in asyncio.all_tasks() if task is not asyncio.current_task()]
         logger.info(f"Running tasks: {len(tasks)}")
+
+        if len(tasks) > max_tasks:
+            logger.warning(f"Too many tasks running ({len(tasks)}). Consider optimizing the task execution.")
+            break  # خروج از حلقه در صورت نیاز
+
         await asyncio.sleep(10)
 
 
