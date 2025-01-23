@@ -6,10 +6,9 @@ import asyncio
 import random
 import sys
 import traceback
-
 from datetime import datetime
-from telegram_bot.send_message import send_logs
 
+from telegram_bot.send_message import send_logs
 from utils.handel_users import DisabledUsers
 from utils.logs import logger
 from utils.read_config import ConfigManager
@@ -18,27 +17,27 @@ from utils.types import NodeType, PanelType, UserType
 try:
     import httpx
 except ImportError:
-    logger.warning("Module 'httpx' is not installed use: 'pip install httpx' to install it")
+    logger.warning("Module 'httpx' is not installed. Use: 'pip install httpx' to install it.")
     sys.exit()
 
+TOKEN_CACHE = {}  # Cache for storing tokens and expiry
 
-async def get_token(panel_data: PanelType, max_retries=20,
-                     retry_delay_min=2, retry_delay_max=5) -> PanelType | ValueError:
+async def get_token(panel_data: PanelType, max_retries=10,
+                    retry_delay_min=2, retry_delay_max=5) -> PanelType | ValueError:
     """
     Get access token from the panel API.
 
     Args:
-        panel_data (PanelType): A PanelType object containing
-        the username, password, and domain for the panel API.
-        max_retries (int): Maximum number of attempts to get the token. Defaults to 20.
-        retry_delay_min (int): Minimum delay between retries in seconds. Defaults to 2.
-        retry_delay_max (int): Maximum delay between retries in seconds. Defaults to 5.
+        panel_data (PanelType): A PanelType object containing username, password, and domain.
+        max_retries (int): Maximum number of attempts to get the token.
+        retry_delay_min (int): Minimum delay between retries.
+        retry_delay_max (int): Maximum delay between retries.
 
     Returns:
         PanelType: The updated PanelType object with the access token.
 
     Raises:
-        ValueError: If the function fails to get a token after multiple attempts.
+        ValueError: If it fails to get a token after max_retries attempts.
     """
     payload = {
         "username": panel_data.panel_username,
@@ -46,320 +45,150 @@ async def get_token(panel_data: PanelType, max_retries=20,
     }
     url = f"{panel_data.panel_domain}/api/admin/token"
 
-    if not url.startswith("http://") and not url.startswith("https://"):
+    if not url.startswith(("http://", "https://")):
         raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
+
+    # Check if we have a valid cached token
+    if panel_data.panel_domain in TOKEN_CACHE:
+        cached_token, expiry_time = TOKEN_CACHE[panel_data.panel_domain]
+        if datetime.now() < expiry_time:
+            panel_data.panel_token = cached_token
+            return panel_data
 
     for attempt in range(max_retries):
         try:
-            timeout = httpx.Timeout(connect=60.0, read=10.0, write=10.0, pool=10.0)
-            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
+            async with httpx.AsyncClient(http2=True, timeout=httpx.Timeout(10.0)) as client:
                 response = await client.post(url, data=payload)
                 response.raise_for_status()
 
             json_obj = response.json()
             panel_data.panel_token = json_obj["access_token"]
+            TOKEN_CACHE[panel_data.panel_domain] = (panel_data.panel_token, datetime.now())
+
             logger.info("Token retrieved successfully on attempt %d.", attempt + 1)
             return panel_data
 
         except httpx.HTTPStatusError as http_error:
-            message = (
-                f"[{http_error.response.status_code}] {http_error.response.text}. "
-                f"URL: {url}, Attempt: {attempt + 1}/{max_retries}"
-            )
-            await send_logs(message)
-            logger.error(message)
+            logger.error("Token request failed [%d]: %s", http_error.response.status_code, http_error.response.text)
 
-        except Exception as error: # pylint: disable=broad-except
-            message = (
-                f"Unexpected error during token request: {error}\n"
-                f"{traceback.format_exc()}. Attempt: {attempt + 1}/{max_retries}"
-            )
-            await send_logs(message)
-            logger.error(message)
+        except Exception as error:
+            logger.error("Unexpected error during token request: %s", traceback.format_exc())
 
-        delay = random.randint(retry_delay_min, retry_delay_max) * (attempt + 1)
+        delay = random.randint(retry_delay_min, retry_delay_max) * (2 ** attempt)
         logger.warning("Retrying in %d seconds... (Attempt %d/%d)", delay, attempt + 1, max_retries)
         await asyncio.sleep(delay)
 
-    message = (
-        "Failed to get token after {max_retries} attempts. Ensure the panel is running "
-        "and the username and password are correct."
-    )
-    await send_logs(message)
+    message = "Failed to get token after multiple attempts. Ensure the panel is running."
     logger.error(message)
     raise ValueError(message)
 
-async def enable_selected_users(
-    panel_data: PanelType, inactive_users: set[str]
-) -> None | ValueError:
-    """
-    Enable selected users on the panel.
-
-    Args:
-        panel_data (PanelType): A PanelType object containing
-        the username, password, and domain for the panel API.
-        inactive_users (set[str]): A set of usernames that are currently inactive.
-
-    Returns:
-        None
-
-    Raises:
-        ValueError: If the function fails to enable the users after multiple attempts.
-    """
+async def enable_selected_users(panel_data: PanelType, inactive_users: set[str]) -> None:
+    """Enable selected users on the panel."""
     try:
-        get_panel_token = await get_token(panel_data)
-        token = get_panel_token.panel_token
+        panel_data = await get_token(panel_data)
     except ValueError as error:
         logger.error("Failed to retrieve token: %s", error)
-        raise error
+        return
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-    }
-
-    url = f"{panel_data.panel_domain}/api/user/{{username}}"
-
-    if not url.startswith("http://") and not url.startswith("https://"):
-        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
+    headers = {"Authorization": f"Bearer {panel_data.panel_token}"}
+    url_template = f"{panel_data.panel_domain}/api/user/{{username}}"
 
     for username in inactive_users:
-        url = url.format(username=username)
-        status = {"status": "active"}
-        success = False
-        for attempt in range(5):
+        url = url_template.format(username=username)
+        status_payload = {"status": "active"}
+
+        for attempt in range(3):
             try:
-                timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
-                async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                    response = await client.put(
-                        url, json=status, headers=headers
-                    )
+                async with httpx.AsyncClient(http2=True) as client:
+                    response = await client.put(url, json=status_payload, headers=headers)
                     response.raise_for_status()
 
-                message = f"Enabled user: {username}"
-                await send_logs(message)
-                logger.info(message)
-                success = True
+                logger.info("User %s enabled successfully.", username)
                 break
-            except httpx.HTTPStatusError as http_error:
-                message = (
-                    f"HTTP error while enabling user {username}: "
-                    f"[{http_error.response.status_code}] {http_error.response.text}"
-                )
-                await send_logs(message)
-                logger.error(message)
-            except Exception as error:  # pylint: disable=broad-except
-                message = f"An unexpected error occurred while enabling user {username}: {error}"
-                await send_logs(message)
-                logger.error(message)
+            except Exception as error:
+                logger.error("Error enabling user %s: %s", username, error)
+                await asyncio.sleep(2 ** attempt)
 
-            await asyncio.sleep(random.randint(2, 5) * (attempt + 1))
-
-        if not success:
-            message = (
-                f"Failed to enable user: {username} after 5 attempts. Ensure the panel is running "
-                "and the username and password are correct."
-            )
-            await send_logs(message)
-            logger.error(message)
-            raise ValueError(message)
-
-    logger.info("Enabled selected users")
-
-
-
-async def disable_user(panel_data: PanelType, username: UserType) -> None | ValueError:
-    """
-    Disable a user on the panel.
-
-    Args:
-        panel_data (PanelType): A PanelType object containing
-        the username, password, and domain for the panel API.
-        username (UserType): The username of the user to disable.
-
-    Returns:
-        None
-
-    Raises:
-        ValueError: If the function fails to disable the user after multiple attempts.
-    """
+async def disable_user(panel_data: PanelType, username: UserType) -> None:
+    """Disable a user on the panel."""
     try:
-        get_panel_token = await get_token(panel_data)
-        token = get_panel_token.panel_token
+        panel_data = await get_token(panel_data)
     except ValueError as error:
         logger.error("Failed to retrieve token: %s", error)
-        raise error
+        return
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-    }
-
+    headers = {"Authorization": f"Bearer {panel_data.panel_token}"}
     url = f"{panel_data.panel_domain}/api/user/{username.name}"
-    status = {"status": "disabled"}
-    success = False
+    status_payload = {"status": "disabled"}
 
-    if not url.startswith("http://") and not url.startswith("https://"):
-        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
-
-    for attempt in range(5):
+    for attempt in range(3):
         try:
-            timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
-            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
-                response = await client.put(url, json=status, headers=headers)
+            async with httpx.AsyncClient(http2=True) as client:
+                response = await client.put(url, json=status_payload, headers=headers)
                 response.raise_for_status()
 
-            message = f"Disabled user: {username.name}"
-            await send_logs(message)
-            logger.info(message)
-
+            logger.info("User %s disabled successfully.", username.name)
             dis_obj = DisabledUsers()
             await dis_obj.add_user(username.name)
-
-            success = True
             break
-        except httpx.HTTPStatusError as http_error:
-            message = (
-                f"HTTP error while disabling user {username.name}: "
-                f"[{http_error.response.status_code}] {http_error.response.text}"
-            )
-            await send_logs(message)
-            logger.error(message)
-        except Exception as error:  # pylint: disable=broad-except
-            message = f"An unexpected error occurred while disabling user {username.name}: {error}"
-            await send_logs(message)
-            logger.error(message)
-
-        await asyncio.sleep(random.randint(2, 5) * (attempt + 1))
-
-    if not success:
-        message = (
-            f"Failed to disable user: {username.name} after 5 attempts. Ensure the panel is running"
-            "and the username and password are correct."
-        )
-        await send_logs(message)
-        logger.error(message)
-        raise ValueError(message)
-
-    logger.info("Disabled user successfully")
-
+        except Exception as error:
+            logger.error("Error disabling user %s: %s", username.name, error)
+            await asyncio.sleep(2 ** attempt)
 
 async def get_nodes(panel_data: PanelType) -> list[NodeType] | ValueError:
-    """
-    Get the IDs of all nodes from the panel API.
-
-    Args:
-        panel_data (PanelType): A PanelType object containing
-        the username, password, and domain for the panel API.
-
-    Returns:
-        list[NodeType]: The list of IDs and other information of all nodes.
-
-    Raises:
-        ValueError: If the function fails to get the nodes after multiple attempts.
-    """
-
-    def parse_nodes(response_json):
-        return [
-            NodeType(
-                node_id=node["id"],
-                node_name=node["name"],
-                node_ip=node["address"],
-                status=node["status"],
-                message=node.get("message", "")
-            )
-            for node in response_json
-        ]
-
+    """Retrieve list of nodes from the panel API."""
     try:
-        get_panel_token = await get_token(panel_data)
-        token = get_panel_token.panel_token
+        panel_data = await get_token(panel_data)
     except ValueError as error:
         logger.error("Failed to retrieve token: %s", error)
-        raise error
+        return []
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-    }
-
+    headers = {"Authorization": f"Bearer {panel_data.panel_token}"}
     url = f"{panel_data.panel_domain}/api/nodes"
 
-    if not url.startswith("http://") and not url.startswith("https://"):
-        raise ValueError(f"Invalid URL: {url}. It must start with http:// or https://")
-
-    for attempt in range(5):
+    for attempt in range(3):
         try:
-            timeout = httpx.Timeout(connect=10.0, read=30.0, write=15.0, pool=10.0)
-            async with httpx.AsyncClient(http2=True, timeout=timeout) as client:
+            async with httpx.AsyncClient(http2=True) as client:
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
 
-            nodes = parse_nodes(response.json())
-            logger.info("Successfully retrieved nodes.")
+            nodes = [
+                NodeType(
+                    node_id=node["id"],
+                    node_name=node["name"],
+                    node_ip=node["address"],
+                    status=node["status"],
+                    message=node.get("message", "")
+                )
+                for node in response.json()
+            ]
             return nodes
-        except httpx.HTTPStatusError as http_error:
-            message = (
-                f"HTTP error while retrieving nodes: "
-                f"[{http_error.response.status_code}] {http_error.response.text}"
-            )
-            await send_logs(message)
-            logger.error(message)
-        except Exception as error:  # pylint: disable=broad-except
-            message = f"An unexpected error occurred while retrieving nodes: {error}"
-            await send_logs(message)
-            logger.error(message)
+        except Exception as error:
+            logger.error("Error retrieving nodes: %s", error)
+            await asyncio.sleep(2 ** attempt)
 
-        await asyncio.sleep(random.randint(2, 5) * (attempt + 1))
-
-    message = (
-        "Failed to get nodes after 5 attempts. Ensure the panel is running "
-        "and the username and password are correct."
-    )
-    await send_logs(message)
-    logger.error(message)
-    raise ValueError(message)
-
+    logger.error("Failed to get nodes after multiple attempts.")
+    return []
 
 async def enable_dis_user(panel_data: PanelType, config_manager: ConfigManager):
-    """
-    Periodically enable disabled users based on the 'TIME_TO_ACTIVE_USERS' configuration.
-
-    Args:
-        panel_data (PanelType): Panel data for user operations.
-        config_manager (ConfigManager): Instance of the ConfigManager to fetch configuration data.
-    """
+    """Periodically enable disabled users based on configuration."""
     dis_obj = DisabledUsers()
+
     while True:
         try:
-            logger.info("Running enable_dis_user loop...")
-
             config_data = await config_manager.read_config()
-
-            time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS"))
-            check_interval = int(config_data.get("CHECK_INTERVAL"))
-            logger.info("Time to active users: %s, Check interval: %s",
-                         time_to_active_users, check_interval)
+            time_to_active_users = int(config_data.get("TIME_TO_ACTIVE_USERS", 3600))
+            check_interval = int(config_data.get("CHECK_INTERVAL", 300))
 
             dis_obj.disabled_users = dis_obj.load_disabled_users()
-            if not dis_obj.disabled_users:
-                logger.info("No disabled users found.")
-
-            for username, disabled_time in list(dis_obj.disabled_users.items()):
-                logger.info("Checking user: %s, Disabled time: %s", username, disabled_time)
-                time_elapsed = (datetime.now() - disabled_time).total_seconds()
-                logger.info("Time elapsed for user %s: %s seconds", username, time_elapsed)
-
-                if time_elapsed >= time_to_active_users:
-                    logger.info("Enabling user: %s", username)
-                    await enable_selected_users(panel_data, {username})
-                    await dis_obj.remove_user(username)
-                    logger.info("User %s has been re-enabled and removed from the disabled list.",
-                                 username)
+            if dis_obj.disabled_users:
+                for username, disabled_time in list(dis_obj.disabled_users.items()):
+                    if (datetime.now() - disabled_time).total_seconds() >= time_to_active_users:
+                        await enable_selected_users(panel_data, {username})
+                        await dis_obj.remove_user(username)
 
             await asyncio.sleep(check_interval)
 
-        except KeyError as error:
-            logger.error("Missing key in configuration: %s", error)
-        except ValueError as error:
-            logger.error("Invalid value in configuration: %s", error)
-        except Exception as error:  # pylint: disable=broad-except
+        except Exception as error:
             logger.error("Unexpected error in enable_dis_user: %s", error)
             await asyncio.sleep(60)
