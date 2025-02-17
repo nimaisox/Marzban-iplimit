@@ -2,4 +2,4 @@ websockets==14.2
 python-telegram-bot==21.10
 httpx[socks,http2]==0.28.1
 pylint==3.3.3
-Nuitka==2.5.9
+Nuitka==2.6.6
